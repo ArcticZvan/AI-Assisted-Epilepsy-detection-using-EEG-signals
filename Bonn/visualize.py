@@ -5,14 +5,17 @@ Bonn EEG 数据集 - 可视化与探索性数据分析 (EDA)
 1. 各子集信号波形对比
 2. 频域分析 (FFT)
 3. 数据集分布统计
+4. Attention 权重可视化（模型可解释性）
 """
 import os
 import numpy as np
 import matplotlib
 matplotlib.use("Agg")
 import matplotlib.pyplot as plt
+from matplotlib.collections import LineCollection
+import matplotlib.colors as mcolors
 
-from config import SUBSET_FOLDERS, SAMPLE_RATE, BASE_DIR
+from config import SUBSET_FOLDERS, SAMPLE_RATE, BASE_DIR, WINDOW_SIZE
 from data_loader import load_raw_dataset
 
 EDA_DIR = os.path.join(BASE_DIR, "eda")
@@ -129,6 +132,127 @@ def plot_amplitude_distribution(output_dir: str = EDA_DIR):
     plt.savefig(os.path.join(output_dir, "amplitude_distribution.png"), dpi=150, bbox_inches="tight")
     plt.close()
     print(f"[INFO] 振幅分布图已保存")
+
+
+def plot_attention_heatmap(signal: np.ndarray, attn_weights: np.ndarray,
+                           label: str, pred_label: str, confidence: float,
+                           output_path: str, sample_rate: float = SAMPLE_RATE):
+    """
+    Overlay attention weights on an EEG signal segment to show which
+    time steps the model considers most important.
+
+    Parameters
+    ----------
+    signal : shape (window_size,) — the raw EEG window
+    attn_weights : shape (seq_len,) — attention weights from the model
+        (seq_len may differ from window_size due to CNN downsampling)
+    label : ground-truth label string
+    pred_label : predicted label string
+    confidence : prediction confidence (0-1)
+    output_path : file path to save the figure
+    """
+    fig, axes = plt.subplots(2, 1, figsize=(14, 6), gridspec_kw={"height_ratios": [3, 1]})
+
+    time_sig = np.arange(len(signal)) / sample_rate
+    axes[0].plot(time_sig, signal, color="#333333", linewidth=0.6, alpha=0.7)
+
+    attn_resampled = np.interp(
+        np.linspace(0, 1, len(signal)),
+        np.linspace(0, 1, len(attn_weights)),
+        attn_weights,
+    )
+    attn_norm = (attn_resampled - attn_resampled.min()) / (attn_resampled.max() - attn_resampled.min() + 1e-8)
+
+    points = np.array([time_sig, signal]).T.reshape(-1, 1, 2)
+    segments = np.concatenate([points[:-1], points[1:]], axis=1)
+    lc = LineCollection(segments, cmap="YlOrRd", norm=mcolors.Normalize(0, 1))
+    lc.set_array(attn_norm[:-1])
+    lc.set_linewidth(1.5)
+    axes[0].add_collection(lc)
+    axes[0].set_xlim(time_sig[0], time_sig[-1])
+    axes[0].set_ylim(signal.min() * 1.1, signal.max() * 1.1)
+    axes[0].set_ylabel("Amplitude")
+    title_color = "#2E7D32" if label == pred_label else "#C62828"
+    axes[0].set_title(
+        f"True: {label} | Pred: {pred_label} (conf={confidence:.2%})",
+        fontsize=12, fontweight="bold", color=title_color,
+    )
+    axes[0].grid(True, alpha=0.2)
+
+    time_attn = np.linspace(time_sig[0], time_sig[-1], len(attn_weights))
+    axes[1].fill_between(time_attn, attn_weights, alpha=0.6, color="#FF7043")
+    axes[1].plot(time_attn, attn_weights, color="#BF360C", linewidth=1.0)
+    axes[1].set_xlabel("Time (seconds)")
+    axes[1].set_ylabel("Attention")
+    axes[1].set_xlim(time_sig[0], time_sig[-1])
+    axes[1].grid(True, alpha=0.2)
+
+    plt.tight_layout()
+    plt.savefig(output_path, dpi=150, bbox_inches="tight")
+    plt.close()
+
+
+def plot_attention_comparison(samples: list[dict], output_path: str,
+                              sample_rate: float = SAMPLE_RATE):
+    """
+    Compare attention distributions across multiple samples (e.g. Normal vs Seizure).
+
+    Parameters
+    ----------
+    samples : list of dicts with keys:
+        'signal' (np.ndarray), 'attn_weights' (np.ndarray),
+        'label' (str), 'pred_label' (str), 'confidence' (float)
+    output_path : file path to save the figure
+    """
+    n = len(samples)
+    fig, axes = plt.subplots(n, 2, figsize=(16, 3.5 * n),
+                              gridspec_kw={"width_ratios": [3, 1]})
+    if n == 1:
+        axes = axes.reshape(1, -1)
+
+    for i, s in enumerate(samples):
+        signal = s["signal"]
+        attn = s["attn_weights"]
+        time_sig = np.arange(len(signal)) / sample_rate
+
+        attn_resampled = np.interp(
+            np.linspace(0, 1, len(signal)),
+            np.linspace(0, 1, len(attn)),
+            attn,
+        )
+        attn_norm = (attn_resampled - attn_resampled.min()) / (attn_resampled.max() - attn_resampled.min() + 1e-8)
+
+        axes[i, 0].plot(time_sig, signal, color="#555555", linewidth=0.5, alpha=0.5)
+        points = np.array([time_sig, signal]).T.reshape(-1, 1, 2)
+        segments = np.concatenate([points[:-1], points[1:]], axis=1)
+        lc = LineCollection(segments, cmap="YlOrRd", norm=mcolors.Normalize(0, 1))
+        lc.set_array(attn_norm[:-1])
+        lc.set_linewidth(1.5)
+        axes[i, 0].add_collection(lc)
+        axes[i, 0].set_xlim(time_sig[0], time_sig[-1])
+        axes[i, 0].set_ylim(signal.min() * 1.1, signal.max() * 1.1)
+        axes[i, 0].set_ylabel("Amplitude")
+        title_color = "#2E7D32" if s["label"] == s["pred_label"] else "#C62828"
+        axes[i, 0].set_title(
+            f"{s['label']} (pred: {s['pred_label']}, conf={s['confidence']:.2%})",
+            fontsize=11, fontweight="bold", color=title_color,
+        )
+        axes[i, 0].grid(True, alpha=0.2)
+
+        axes[i, 1].barh(
+            np.arange(len(attn)), attn,
+            color="#FF7043", alpha=0.7, height=0.8,
+        )
+        axes[i, 1].set_xlabel("Attention Weight")
+        axes[i, 1].set_ylabel("Time Step")
+        axes[i, 1].invert_yaxis()
+        axes[i, 1].grid(True, alpha=0.2)
+
+    axes[-1, 0].set_xlabel("Time (seconds)")
+    plt.suptitle("Attention Weight Comparison", fontsize=14, fontweight="bold")
+    plt.tight_layout()
+    plt.savefig(output_path, dpi=150, bbox_inches="tight")
+    plt.close()
 
 
 if __name__ == "__main__":

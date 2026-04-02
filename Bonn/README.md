@@ -6,16 +6,22 @@
 
 ```
 Bonn/
-├── Z/              # Set A: 正常人，睁眼 (100 个文件)
-├── O/              # Set B: 正常人，闭眼 (100 个文件)
-├── N/              # Set C: 癫痫患者，发作间期 (100 个文件)
-├── F/              # Set D: 癫痫患者，发作间期 (100 个文件)
-├── S/              # Set E: 癫痫患者，发作期 (100 个文件)
-├── config.py       # 全局配置参数
-├── data_loader.py  # 数据加载与预处理
-├── model.py        # 模型架构定义
-├── train.py        # 训练与评估脚本
-├── visualize.py    # 可视化 EDA 脚本
+├── data/
+│   ├── Z/              # Set A: 正常人，睁眼 (100 个文件)
+│   ├── O/              # Set B: 正常人，闭眼 (100 个文件)
+│   ├── N/              # Set C: 癫痫患者，发作间期 (100 个文件)
+│   ├── F/              # Set D: 癫痫患者，发作间期 (100 个文件)
+│   └── S/              # Set E: 癫痫患者，发作期 (100 个文件)
+├── tests/
+│   ├── test_data_loader.py  # 数据加载单元测试
+│   └── test_model.py        # 模型架构单元测试
+├── config.py           # 全局配置参数
+├── data_loader.py      # 数据加载与预处理
+├── model.py            # 模型架构定义
+├── train.py            # 深度学习训练与评估脚本
+├── train_svm.py        # SVM + 小波包特征基线模型
+├── predict.py          # 独立推理脚本
+├── visualize.py        # 可视化 EDA 脚本
 ├── requirements.txt
 └── README.md
 ```
@@ -57,7 +63,7 @@ pip install -r requirements.txt
 python visualize.py
 ```
 
-会在 `output/` 目录生成:
+会在 `eda/` 目录生成:
 - `signal_comparison.png` - 五类信号波形对比
 - `fft_comparison.png` - 频域分析
 - `amplitude_distribution.png` - 振幅分布
@@ -85,14 +91,55 @@ python train.py --task binary --model hybrid --mode kfold --folds 10
 python train.py --task binary --model bilstm --mode kfold --folds 10
 ```
 
-### 4. 命令行参数说明
+### 4. SVM 基线模型
+
+```bash
+# 二分类 SVM + 小波包特征
+python train_svm.py --task binary --folds 10
+
+# 三分类
+python train_svm.py --task three --folds 10
+
+# 五分类
+python train_svm.py --task five --folds 10
+```
+
+### 5. 单文件推理
+
+```bash
+# 使用训练好的模型对单个 EEG 文件进行预测
+python predict.py --model_path saved_models/binary_hybrid_final.pt --input data/S/S001.txt --task binary
+
+# 对整个目录进行批量预测
+python predict.py --model_path saved_models/binary_hybrid_final.pt --input data/S/ --task binary
+```
+
+### 6. 命令行参数说明
+
+**train.py**
 
 | 参数       | 选项                           | 说明                              |
 |-----------|-------------------------------|----------------------------------|
 | `--task`  | `binary`, `three`, `five`     | 分类任务                          |
-| `--model` | `hybrid`, `bilstm`            | 模型架构                          |
+| `--model` | `hybrid`, `bilstm`, `cnn`    | 模型架构                          |
 | `--mode`  | `single`, `kfold`             | 训练模式                          |
 | `--folds` | 整数 (默认 10)                 | K-Fold 折数                       |
+
+**train_svm.py**
+
+| 参数       | 选项                           | 说明                              |
+|-----------|-------------------------------|----------------------------------|
+| `--task`  | `binary`, `three`, `five`     | 分类任务                          |
+| `--folds` | 整数 (默认 10)                 | K-Fold 折数                       |
+
+**predict.py**
+
+| 参数             | 说明                                        |
+|-----------------|---------------------------------------------|
+| `--model_path`  | 模型权重文件路径 (`.pt`)                      |
+| `--input`       | 输入 EEG 文件路径或目录                       |
+| `--task`        | 分类任务: `binary`, `three`, `five`          |
+| `--model`       | 模型架构: `hybrid`, `bilstm`, `cnn`          |
 
 ## 在百度云开发机上运行 (SSH)
 

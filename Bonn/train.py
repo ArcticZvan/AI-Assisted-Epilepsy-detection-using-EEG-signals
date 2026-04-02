@@ -20,7 +20,10 @@ from sklearn.metrics import (
     confusion_matrix,
     accuracy_score,
     f1_score,
+    roc_auc_score,
+    roc_curve,
 )
+from sklearn.preprocessing import label_binarize
 import torch
 import torch.nn as nn
 from torch.optim import Adam
@@ -89,13 +92,14 @@ def train_one_epoch(model, loader, criterion, optimizer, device):
 
 @torch.no_grad()
 def evaluate(model, loader, criterion, device):
-    """评估模型，返回 loss, accuracy, 预测值和真实值。"""
+    """评估模型，返回 loss, accuracy, 预测值, 真实值和预测概率。"""
     model.eval()
     total_loss = 0.0
     correct = 0
     total = 0
     all_preds = []
     all_labels = []
+    all_probs = []
 
     for X_batch, y_batch in loader:
         X_batch, y_batch = X_batch.to(device), y_batch.to(device)
@@ -104,10 +108,14 @@ def evaluate(model, loader, criterion, device):
 
         if model.num_classes == 2:
             loss = criterion(logits, y_batch.float())
-            preds = (torch.sigmoid(logits) > 0.5).long()
+            probs = torch.sigmoid(logits)
+            preds = (probs > 0.5).long()
+            all_probs.extend(probs.cpu().numpy())
         else:
             loss = criterion(logits, y_batch)
+            probs = torch.softmax(logits, dim=1)
             preds = logits.argmax(dim=1)
+            all_probs.extend(probs.cpu().numpy())
 
         total_loss += loss.item() * X_batch.size(0)
         correct += (preds == y_batch).sum().item()
@@ -115,7 +123,8 @@ def evaluate(model, loader, criterion, device):
         all_preds.extend(preds.cpu().numpy())
         all_labels.extend(y_batch.cpu().numpy())
 
-    return total_loss / total, correct / total, np.array(all_preds), np.array(all_labels)
+    return (total_loss / total, correct / total,
+            np.array(all_preds), np.array(all_labels), np.array(all_probs))
 
 
 def plot_training_history(train_losses, val_losses, train_accs, val_accs,
@@ -156,6 +165,60 @@ def plot_confusion_matrix(y_true, y_pred, class_names, fold, output_dir: str):
     plt.tight_layout()
     plt.savefig(os.path.join(output_dir, f"confusion_matrix_fold{fold}.png"), dpi=150)
     plt.close()
+
+
+def compute_sensitivity_specificity(y_true, y_pred, num_classes: int):
+    """
+    Compute per-class sensitivity (recall) and specificity from confusion matrix.
+    Returns dict with 'sensitivity' and 'specificity' lists.
+    """
+    cm = confusion_matrix(y_true, y_pred, labels=list(range(num_classes)))
+    sensitivities = []
+    specificities = []
+    for i in range(num_classes):
+        tp = cm[i, i]
+        fn = cm[i, :].sum() - tp
+        fp = cm[:, i].sum() - tp
+        tn = cm.sum() - tp - fn - fp
+        sensitivities.append(float(tp / (tp + fn)) if (tp + fn) > 0 else 0.0)
+        specificities.append(float(tn / (tn + fp)) if (tn + fp) > 0 else 0.0)
+    return {"sensitivity": sensitivities, "specificity": specificities}
+
+
+def plot_roc_curve(y_true, y_probs, num_classes: int, class_names: list[str],
+                   fold, output_dir: str):
+    """Plot ROC curve. Binary: single curve. Multi-class: One-vs-Rest curves."""
+    plt.figure(figsize=(8, 6))
+
+    if num_classes == 2:
+        fpr, tpr, _ = roc_curve(y_true, y_probs)
+        auc_val = roc_auc_score(y_true, y_probs)
+        plt.plot(fpr, tpr, linewidth=2, label=f"AUC = {auc_val:.4f}")
+    else:
+        y_true_bin = label_binarize(y_true, classes=list(range(num_classes)))
+        for i in range(num_classes):
+            fpr, tpr, _ = roc_curve(y_true_bin[:, i], y_probs[:, i])
+            auc_val = roc_auc_score(y_true_bin[:, i], y_probs[:, i])
+            plt.plot(fpr, tpr, linewidth=1.5,
+                     label=f"{class_names[i]} (AUC={auc_val:.4f})")
+
+    plt.plot([0, 1], [0, 1], "k--", alpha=0.4, linewidth=1)
+    plt.xlabel("False Positive Rate")
+    plt.ylabel("True Positive Rate")
+    plt.title(f"ROC Curve - Fold {fold}")
+    plt.legend(loc="lower right")
+    plt.grid(True, alpha=0.3)
+    plt.tight_layout()
+    plt.savefig(os.path.join(output_dir, f"roc_curve_fold{fold}.png"), dpi=150)
+    plt.close()
+
+
+def compute_auc(y_true, y_probs, num_classes: int):
+    """Compute AUC score. Binary: single value. Multi-class: macro-averaged OvR."""
+    if num_classes == 2:
+        return float(roc_auc_score(y_true, y_probs))
+    y_true_bin = label_binarize(y_true, classes=list(range(num_classes)))
+    return float(roc_auc_score(y_true_bin, y_probs, average="macro", multi_class="ovr"))
 
 
 def plot_combined_training_curves(all_histories: list[dict], output_dir: str):
@@ -240,7 +303,7 @@ def run_training(model, train_loader, val_loader, num_classes,
     for epoch in range(1, EPOCHS + 1):
         t0 = time.time()
         train_loss, train_acc = train_one_epoch(model, train_loader, criterion, optimizer, device)
-        val_loss, val_acc, y_pred, y_true = evaluate(model, val_loader, criterion, device)
+        val_loss, val_acc, y_pred, y_true, _ = evaluate(model, val_loader, criterion, device)
         elapsed = time.time() - t0
 
         scheduler.step(val_loss)
@@ -268,7 +331,7 @@ def run_training(model, train_loader, val_loader, num_classes,
                 break
 
     model.load_state_dict(best_model_state)
-    _, best_acc, y_pred, y_true = evaluate(model, val_loader, criterion, device)
+    _, best_acc, y_pred, y_true, y_probs = evaluate(model, val_loader, criterion, device)
     best_f1 = f1_score(y_true, y_pred, average="weighted")
 
     plot_training_history(train_losses, val_losses, train_accs, val_accs, fold, output_dir)
@@ -283,7 +346,7 @@ def run_training(model, train_loader, val_loader, num_classes,
     with open(hist_path, "w") as f:
         json.dump(history, f)
 
-    return best_acc, best_f1, y_true, y_pred, history
+    return best_acc, best_f1, y_true, y_pred, y_probs, history
 
 
 def _split_recordings(recordings, rec_labels, train_idx, val_idx):
@@ -334,14 +397,21 @@ def train_single_split(task: str = "binary", model_type: str = "hybrid",
     model = build_model(model_type, num_classes=num_classes).to(device)
     print(f"模型参数量: {count_parameters(model):,}\n")
 
-    acc, f1, y_true, y_pred, _ = run_training(
+    acc, f1, y_true, y_pred, y_probs, _ = run_training(
         model, train_loader, val_loader, num_classes, device, fold=0, output_dir=task_output_dir,
     )
 
-    print(f"\n单次分割结果: Accuracy={acc:.4f}, F1={f1:.4f}")
+    sens_spec = compute_sensitivity_specificity(y_true, y_pred, num_classes)
+    auc_val = compute_auc(y_true, y_probs, num_classes)
+
+    print(f"\n单次分割结果: Accuracy={acc:.4f}, F1={f1:.4f}, AUC={auc_val:.4f}")
+    for i, name in enumerate(class_names):
+        print(f"  {name}: Sensitivity={sens_spec['sensitivity'][i]:.4f}, "
+              f"Specificity={sens_spec['specificity'][i]:.4f}")
     print(classification_report(y_true, y_pred, target_names=class_names))
 
     plot_confusion_matrix(y_true, y_pred, class_names, fold=0, output_dir=task_output_dir)
+    plot_roc_curve(y_true, y_probs, num_classes, class_names, fold=0, output_dir=task_output_dir)
 
     final_path = os.path.join(MODEL_DIR, f"{task}_{model_type}_final.pt")
     torch.save(model.state_dict(), final_path)
@@ -374,8 +444,12 @@ def train_kfold(task: str = "binary", model_type: str = "hybrid", n_folds: int =
 
     fold_accuracies = []
     fold_f1_scores = []
+    fold_auc_scores = []
+    fold_sensitivities = []
+    fold_specificities = []
     all_y_true = []
     all_y_pred = []
+    all_y_probs = []
     all_histories = []
 
     for fold, (train_idx, val_idx) in enumerate(skf.split(recordings, rec_labels), start=1):
@@ -399,30 +473,49 @@ def train_kfold(task: str = "binary", model_type: str = "hybrid", n_folds: int =
         if fold == 1:
             print(f"  模型参数量: {count_parameters(model):,}")
 
-        acc, f1, y_true, y_pred, history = run_training(
+        acc, f1, y_true, y_pred, y_probs, history = run_training(
             model, train_loader, val_loader, num_classes, device,
             fold=fold, output_dir=task_output_dir,
         )
 
+        sens_spec = compute_sensitivity_specificity(y_true, y_pred, num_classes)
+        auc_val = compute_auc(y_true, y_probs, num_classes)
+
         fold_accuracies.append(acc)
         fold_f1_scores.append(f1)
+        fold_auc_scores.append(auc_val)
+        fold_sensitivities.append(sens_spec["sensitivity"])
+        fold_specificities.append(sens_spec["specificity"])
         all_y_true.extend(y_true.tolist())
         all_y_pred.extend(y_pred.tolist())
+        all_y_probs.extend(y_probs.tolist())
         all_histories.append(history)
 
-        print(f"\n  Fold {fold} 结果: Accuracy={acc:.4f}, F1={f1:.4f}")
+        print(f"\n  Fold {fold} 结果: Accuracy={acc:.4f}, F1={f1:.4f}, AUC={auc_val:.4f}")
+        for i, name in enumerate(class_names):
+            print(f"    {name}: Sens={sens_spec['sensitivity'][i]:.4f}, "
+                  f"Spec={sens_spec['specificity'][i]:.4f}")
         print(classification_report(y_true, y_pred, target_names=class_names))
 
         plot_confusion_matrix(y_true, y_pred, class_names, fold, task_output_dir)
+        plot_roc_curve(y_true, y_probs, num_classes, class_names, fold, task_output_dir)
+
+    mean_sens = np.mean(fold_sensitivities, axis=0).tolist()
+    mean_spec = np.mean(fold_specificities, axis=0).tolist()
 
     print(f"\n{'='*60}")
     print(f"  {n_folds}-Fold 交叉验证汇总 (Recording-level, 无数据泄露)")
     print(f"{'='*60}")
     print(f"  平均 Accuracy: {np.mean(fold_accuracies):.4f} (+/- {np.std(fold_accuracies):.4f})")
     print(f"  平均 F1 Score: {np.mean(fold_f1_scores):.4f} (+/- {np.std(fold_f1_scores):.4f})")
+    print(f"  平均 AUC:      {np.mean(fold_auc_scores):.4f} (+/- {np.std(fold_auc_scores):.4f})")
+    for i, name in enumerate(class_names):
+        print(f"  {name}: 平均 Sensitivity={mean_sens[i]:.4f}, 平均 Specificity={mean_spec[i]:.4f}")
     print(f"  各折 Accuracy: {[f'{a:.4f}' for a in fold_accuracies]}")
 
     plot_confusion_matrix(all_y_true, all_y_pred, class_names, fold="all", output_dir=task_output_dir)
+    plot_roc_curve(np.array(all_y_true), np.array(all_y_probs), num_classes,
+                   class_names, fold="all", output_dir=task_output_dir)
     plot_combined_training_curves(all_histories, task_output_dir)
 
     results = {
@@ -432,10 +525,15 @@ def train_kfold(task: str = "binary", model_type: str = "hybrid", n_folds: int =
         "split_level": "recording-level (no data leakage)",
         "fold_accuracies": fold_accuracies,
         "fold_f1_scores": fold_f1_scores,
+        "fold_auc_scores": fold_auc_scores,
         "mean_accuracy": float(np.mean(fold_accuracies)),
         "std_accuracy": float(np.std(fold_accuracies)),
         "mean_f1": float(np.mean(fold_f1_scores)),
         "std_f1": float(np.std(fold_f1_scores)),
+        "mean_auc": float(np.mean(fold_auc_scores)),
+        "std_auc": float(np.std(fold_auc_scores)),
+        "mean_sensitivity_per_class": {name: mean_sens[i] for i, name in enumerate(class_names)},
+        "mean_specificity_per_class": {name: mean_spec[i] for i, name in enumerate(class_names)},
     }
 
     results_path = os.path.join(task_output_dir, "results.json")

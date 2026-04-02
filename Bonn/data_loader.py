@@ -72,7 +72,7 @@ def sliding_window_segment(signal: np.ndarray,
                            window_size: int = WINDOW_SIZE,
                            stride: int = WINDOW_STRIDE) -> np.ndarray:
     """对单个信号进行滑动窗口分割，返回 (num_windows, window_size)。"""
-    num_windows = (len(signal) - window_size) // stride + 1
+    num_windows = max(0, (len(signal) - window_size) // stride + 1)
     segments = np.zeros((num_windows, window_size), dtype=np.float32)
     for i in range(num_windows):
         start = i * stride

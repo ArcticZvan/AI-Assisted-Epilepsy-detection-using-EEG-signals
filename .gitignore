@@ -4,3 +4,7 @@
 /Bonn/saved_models/
 /Bonn/__pycache__/
 /Bonn/Bonn/
+/Bonn/.venv/
+/Bonn/eda/
+/Bonn/.pytest_cache/
+/Bonn/tests/__pycache__/
