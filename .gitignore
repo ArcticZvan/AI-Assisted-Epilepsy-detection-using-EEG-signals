@@ -9,6 +9,19 @@
 /Bonn/.pytest_cache/
 /Bonn/tests/__pycache__/
 
-/BBC6521_Final_Report_LaTeX_Template_25_26/
+# LaTeX build artifacts
+*.aux
+*.log
+*.out
+*.toc
+*.lof
+*.lot
+*.bbl
+*.blg
+*.synctex.gz
+*.fls
+*.fdb_latexmk
+*.xdv
+
 # macOS metadata
 .DS_Store
