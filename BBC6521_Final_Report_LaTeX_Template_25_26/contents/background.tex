@@ -14,27 +14,70 @@ In practice, a neurologist reviews hours (sometimes days) of continuous EEG to s
 
 \subsubsection{Traditional Machine Learning}
 
-Before deep learning, the standard pipeline for EEG classification involved extracting handcrafted features --- power spectral density, wavelet coefficients, Hjorth parameters, and so on --- and feeding them into a classifier. SVMs were a popular choice due to their effectiveness in high-dimensional spaces. The main weakness of this approach is that the quality of results depends heavily on the features chosen, which requires domain expertise and careful tuning. Features that work well for one dataset or patient population may transfer poorly to another.
+Before deep learning, the standard pipeline for EEG classification involved extracting handcrafted features --- power spectral density, wavelet coefficients, Hjorth parameters, and so on --- and feeding them into a classifier. Shoeb and Guttag \cite{shoeb2010} demonstrated one of the earliest successful machine learning systems for seizure detection, achieving 96\% sensitivity on the CHB-MIT Scalp EEG Database using patient-specific SVM classifiers. Their approach required training a separate model for each patient, which limited scalability but showed that automated detection was feasible. The CHB-MIT dataset they used has since become one of the standard benchmarks in the field, available through PhysioNet \cite{goldberger2000}.
+
+SVMs remained a popular choice for many years due to their effectiveness in high-dimensional feature spaces. The main weakness of this approach is that the quality of results depends heavily on the features chosen, which requires domain expertise and careful tuning. In this project, we include an SVM baseline with wavelet-packet features specifically to quantify how much deep learning adds over this traditional approach.
 
 \subsubsection{CNN-based Approaches}
 
-CNNs changed the game by learning features automatically from raw (or near-raw) EEG data. Acharya et al.\ \cite{acharya2018} proposed a deep 13-layer CNN for seizure detection on the Bonn dataset, achieving 88.67\% accuracy on a three-class task (normal, preictal, seizure) with 10-fold cross-validation. Their work was among the first to show that CNNs can learn discriminative EEG patterns without hand-engineered features, though the three-class accuracy left room for improvement.
+CNN-based methods reduced reliance on hand-crafted features by learning directly from raw (or near-raw) EEG data. Acharya et al.\ \cite{acharya2018} proposed a deep 13-layer CNN for seizure detection on the Bonn dataset, achieving 88.67\% accuracy on a three-class task (normal, preictal, seizure) with 10-fold cross-validation. Their work was among the first to show that CNNs can learn discriminative EEG patterns without hand-engineered features. However, 88.67\% is modest for a three-class problem, and the network's depth (13 layers) raises questions about whether it was over-parameterised for the small Bonn dataset.
 
-Ullah et al.\ \cite{ullah2018} took a different approach with a pyramidal 1D-CNN, processing raw EEG segments and reporting 99.1\% ($\pm$0.9\%) accuracy on binary detection. The pyramid structure uses progressively deeper layers to capture multi-scale features. But like many CNN architectures, it inherently treats the input as a fixed-size pattern, with no explicit mechanism for modelling how EEG dynamics unfold over time.
+In a related direction, Zhang et al.\ \cite{zhang2026} proposed a cortically subdivided neurodynamic model that uses multi-scale convolutions and physics-informed neural networks (PINNs) for EEG-based Alzheimer's detection. Although targeting a different condition, their work demonstrates that incorporating domain knowledge about brain structure into the network design can improve neurological signal classification --- a principle that influenced our decision to use separate CNN and LSTM components for local and temporal features rather than a single monolithic architecture.
+
+Ullah et al.\ \cite{ullah2018} addressed the parameter-efficiency concern with a pyramidal 1D-CNN (P-1D-CNN), reporting roughly 60\% fewer learnable parameters than a conventional CNN. Their study focused particularly on the more difficult ternary Bonn setting and reported accuracies up to 99.1\% ($\pm$0.9\%) across their Bonn experiments after augmentation. The pyramid structure captures multi-scale features through progressively deeper layers. Still, like most CNN-based approaches, temporal dependencies are modelled only implicitly through local convolutions rather than by an explicit sequence module. In our project, the Pure 1D-CNN baseline is used to test whether adding temporal modelling provides additional value beyond local feature extraction alone.
 
 \subsubsection{LSTM-based Approaches}
 
-Recurrent networks --- LSTMs in particular --- address the temporal limitation of CNNs. Thara et al.\ \cite{thara2019} used stacked bidirectional LSTMs and reported 99\% binary accuracy on the Bonn dataset. Their preprocessing split each recording into 23 non-overlapping segments of 178 points each, then shuffled all segments before doing an 80/20 train-test split. This means segments from the same recording could end up in both sets --- a subtle form of data leakage that their paper does not discuss.
+Recurrent networks --- LSTMs in particular --- address the temporal limitation of CNNs. Hussein et al.\ \cite{hussein2019} developed an optimised LSTM architecture specifically designed for robustness against common EEG artefacts such as muscle activity and eye movements. Their key insight was that real clinical EEG is rarely clean, and a model that performs well only on artefact-free data (like the Bonn dataset) may fail in practice. They addressed this by segmenting data and using average pooling before classification. While our project uses the relatively clean Bonn dataset, Hussein's emphasis on noise robustness is relevant to the future work direction of validating on noisier clinical datasets.
 
-Hussein et al.\ \cite{hussein2019} developed an optimised LSTM with regularisation for robust seizure detection. Their results confirm that temporal modelling helps, but pure LSTMs process raw signal values directly, potentially missing local morphological features that a CNN would catch.
+Thara et al.\ \cite{thara2019} used stacked bidirectional LSTMs on the Bonn dataset, achieving 99.08\% detection accuracy (precision 98\%, recall 99.5\%, AUC 0.984) for binary seizure classification. Beyond detection, they also attempted seizure \textit{prediction} by classifying preictal states, reaching 89.21\% sensitivity --- an interesting direction that few other Bonn-based studies explore. Their Bi-LSTM architecture is conceptually close to the recurrent component in our hybrid model.
+
+However, a critical methodological issue exists in their work. Their preprocessing split each 4097-point recording into 23 non-overlapping segments of 178 points, then shuffled all 11{,}500 segments before doing an 80/20 train-test split. This means segments from the same recording could appear in both training and test sets --- a form of data leakage that their paper does not acknowledge. Their proposed wearable wrist-watch device for seizure alarms is a practical vision, but the inflated detection accuracy undermines confidence in the reported performance. Our project explicitly addresses this by enforcing recording-level splitting.
 
 \subsubsection{Hybrid Architectures and Recent Work}
 
-The idea of combining CNNs with LSTMs to get the best of both worlds has gained traction in recent years. Huang et al.\ \cite{huang2025} proposed STFFDA, a model combining CNN with 1D-SE attention and Bi-LSTM with dot-product attention, published in \textit{Scientific Reports} in 2025. On the Bonn dataset with 10-Fold cross-validation, they achieved only 67.24\% on five-class classification. Part of the reason for this low accuracy appears to be their unusual preprocessing: they treat each of the 4097 data points as an independent 178-dimensional sample, discarding most of the temporal context.
+The idea of combining CNNs with recurrent networks to leverage both local feature extraction and temporal modelling has gained significant traction. Roy et al.\ \cite{roy2019} proposed ChronoNet, an architecture that combines 1D convolution layers (with exponentially varying filter lengths) and densely connected GRU layers. ChronoNet was evaluated on the Temple University Hospital (TUH) Abnormal EEG Corpus \cite{obeid2016} --- one of the largest publicly available clinical EEG datasets --- and reported state-of-the-art abnormal EEG identification performance at the time. The TUH corpus is substantially larger and noisier than the Bonn dataset, so ChronoNet provides useful evidence that hybrid architectures can remain effective under more realistic data conditions.
 
-Chen et al.\ \cite{chen2023} took a feature-engineering-heavy approach, combining Discrete Wavelet Transform features with Random Forest selection and CNN classification. They reported 98.47\% on binary detection with a 3:1 split, but did not attempt five-class evaluation or cross-validation.
+Golmohammadi et al.\ \cite{golmohammadi2019} conducted a systematic comparison of LSTM and GRU units within a hybrid CNN-RNN framework, also using the TUH Seizure Corpus. Their finding that convolutional LSTMs significantly outperformed convolutional GRUs supports our choice of LSTM (rather than GRU) as the recurrent component. They also demonstrated that proper initialisation and regularisation are critical for training deep recurrent models on EEG data --- a lesson reflected in our use of dropout, early stopping, and learning rate scheduling.
 
-A comprehensive review by Shoeibi et al.\ \cite{shoeibi2021} surveyed deep learning methods for seizure detection and found that hybrid architectures combining multiple network types tend to outperform single-architecture models, particularly on harder classification tasks. This finding motivates the hybrid approach taken in this project.
+Huang et al.\ \cite{huang2025} proposed STFFDA, a model combining CNN with 1D-SE attention and Bi-LSTM with dot-product attention, published in \textit{Scientific Reports} in 2025. On the Bonn dataset, they reported 67.24\% on five-class classification under 10-fold cross-validation. Their paper also uses a substantially different preprocessing strategy, treating each 4097-point recording as a set of 178-dimensional samples rather than as a continuous time series. For that reason, the comparison with our results is informative but not strictly like-for-like. Even so, the paper remains a useful recent reference because it evaluates five-class performance on the same benchmark with a closely related CNN-BiLSTM-attention family.
+
+Chen et al.\ \cite{chen2023} took a feature-engineering-heavy approach, combining Discrete Wavelet Transform features with Random Forest selection and CNN classification. They reported 98.47\% on binary detection with a 3:1 split, but did not attempt five-class evaluation or cross-validation. Their use of handcrafted wavelet features before CNN classification is conceptually similar to our SVM baseline, which also uses wavelet-packet features, though with an SVM rather than CNN classifier.
+
+A comprehensive review by Shoeibi et al.\ \cite{shoeibi2021} surveyed deep learning methods for seizure detection and found that hybrid architectures combining multiple network types tend to outperform single-architecture models, particularly on harder classification tasks. They also noted that most published studies lack systematic ablation experiments, making it unclear which component actually drives performance. This finding directly motivates both the hybrid approach and the ablation study design in this project.
+
+Table~\ref{table:related_work_summary} summarises the key related works discussed in this section.
+
+\begin{table}[H]
+  \centering
+  \begin{spacing}{1.35}
+  \caption{Summary of Related Work on EEG-based Epilepsy Detection}\vspace{0.7em}
+  \label{table:related_work_summary}
+    {\small
+    \begin{tabular}{|>{\raggedright\arraybackslash}p{3.0cm}|>{\raggedright\arraybackslash}p{3.1cm}|>{\raggedright\arraybackslash}p{1.2cm}|>{\raggedright\arraybackslash}p{2.3cm}|>{\raggedright\arraybackslash}p{1.6cm}|>{\raggedright\arraybackslash}p{1.7cm}|}
+    \hline
+    \textbf{Study} & \textbf{Method} & \textbf{Year} & \textbf{Evaluation} & \textbf{Task} & \textbf{Accuracy} \\
+    \hline
+    Shoeb \& Guttag \cite{shoeb2010} & Patient-specific SVM & 2010 & Per-patient CV & Binary & 96\% \\
+    \hline
+    Acharya et al.\ \cite{acharya2018} & 13-layer CNN & 2018 & 10-Fold CV & 3-class & 88.67\% \\
+    \hline
+    Ullah et al.\ \cite{ullah2018} & Pyramidal 1D-CNN & 2018 & 10-Fold CV + aug. & Binary / 3-class & Up to 99.1\% \\
+    \hline
+    Hussein et al.\ \cite{hussein2019} & Optimised LSTM & 2019 & Cross-val & Binary & Robust \\
+    \hline
+    Thara et al.\ \cite{thara2019} & Stacked Bi-LSTM & 2019 & 80/20 split & Binary & 99.08\% \\
+    \hline
+    Roy et al.\ \cite{roy2019} & ChronoNet (CNN+GRU) & 2019 & TUH dataset & Abnormal & Best at time \\
+    \hline
+    Chen et al.\ \cite{chen2023} & DWT + RF + CNN & 2023 & 3:1 split & Binary & 98.47\% \\
+    \hline
+    Huang et al.\ \cite{huang2025} & STFFDA & 2025 & 10-Fold CV & 5-class & 67.24\% \\
+    \hline
+    \end{tabular}
+    }
+  \end{spacing}
+\end{table}
 
 \subsection{Attention Mechanisms in Biomedical Signal Processing}
 
@@ -42,18 +85,23 @@ Not all parts of an EEG recording are equally informative. A 23-second recording
 
 Self-Attention addresses this by learning a weight for each time step. Given a sequence of Bi-LSTM outputs $\{h_1, \ldots, h_T\}$, the attention mechanism used in this project computes:
 \begin{equation}
-\alpha_t = \frac{\exp(\mathbf{u}^\top \tanh(\mathbf{W} h_t + b))}{\sum_{j=1}^{T} \exp(\mathbf{u}^\top \tanh(\mathbf{W} h_j + b))}, \qquad c = \sum_{t=1}^{T} \alpha_t h_t
+\begin{aligned}
+\alpha_t &= \frac{\exp(\mathbf{u}^\top \tanh(\mathbf{W} h_t + b))}{\sum_{j=1}^{T} \exp(\mathbf{u}^\top \tanh(\mathbf{W} h_j + b))} \\
+c &= \sum_{t=1}^{T} \alpha_t h_t
+\end{aligned}
 \end{equation}
-where $\mathbf{W}$ and $\mathbf{u}$ are learnable parameters and $\alpha_t$ is the attention weight for time step $t$. The context vector $c$ aggregates the entire sequence into a single representation, weighed by learned importance. This mechanism has been applied successfully in other biomedical domains including ECG classification and EMG analysis.
+where $\mathbf{W}$ and $\mathbf{u}$ are learnable parameters and $\alpha_t$ is the attention weight for time step $t$. The context vector $c$ aggregates the entire sequence into a single representation, weighted by learned importance. This mechanism has been applied successfully in other biomedical domains including ECG classification and EMG analysis.
+
+Huang et al.\ \cite{huang2025} also used attention in their STFFDA model, but employed a dot-product attention mechanism rather than the additive (Bahdanau-style) attention used here. Their five-class result (67.24\%) shows that adding attention does not by itself guarantee strong performance --- the quality of the feature representation and the sample construction still matter.
 
 \subsection{Research Gaps and Study Novelty}
 
 Three gaps in the existing literature motivate this study:
 
-\textbf{Data leakage in evaluation.} Many studies --- including Thara et al.\ \cite{thara2019} --- use segment-level or sample-level splitting, where overlapping windows from the same recording can appear in both training and validation sets. This inflates accuracy and makes results hard to trust. Few papers explicitly enforce recording-level splitting.
+\textbf{Gap 1: Data leakage in evaluation.} Many studies --- including Thara et al.\ \cite{thara2019} --- use segment-level or sample-level splitting, where overlapping windows from the same recording can appear in both training and validation sets. This inflates accuracy and makes results hard to trust. Few papers explicitly enforce recording-level splitting. Even recent work like Chen et al.\ \cite{chen2023} uses simple train-test splits without discussing potential leakage.
 
-\textbf{No systematic ablation.} Most papers compare their model against unrelated baselines, making it unclear which component actually helps. A controlled comparison where the same training data and evaluation protocol are used across a hybrid model and its individual components (CNN-only, LSTM-only) is rarely done.
+\textbf{Gap 2: No systematic ablation.} Most papers compare their model against unrelated baselines. For example, Ullah et al.\ \cite{ullah2018} compare their P-1D-CNN against entirely different architectures from other papers, making it unclear whether improvements come from the model itself or from differences in preprocessing, data splits, or hyperparameters. The review by Shoeibi et al.\ \cite{shoeibi2021} explicitly noted this as a limitation of the field. A controlled comparison where the same training data and evaluation protocol are used across a hybrid model and its individual components (CNN-only, LSTM-only) is rarely done.
 
-\textbf{Under-explored multi-class classification.} Binary seizure detection is the focus of most work, but it is also the easiest task --- the signal differences between normal and seizure EEG are large enough that even simple methods achieve near-perfect accuracy. The five-class task, which requires distinguishing between different brain states and recording locations, is where model design actually matters. The best reported five-class accuracy on the Bonn dataset to date is 67.24\% \cite{huang2025}, suggesting room for improvement.
+\textbf{Gap 3: Under-explored multi-class classification.} Binary seizure detection is the focus of most work, but it is also the easiest task under the common Bonn Z+O vs.\ S setup --- the signal differences between normal and seizure EEG are large enough that even a traditional SVM achieves 99.67\% in this project. The five-class task, which requires distinguishing between different brain states and recording locations, is where model design actually matters. Among the studies reviewed in this chapter, Huang et al.\ reported 67.24\% on Bonn five-class classification under 10-fold cross-validation \cite{huang2025}, which still leaves clear room for improvement.
 
 This project addresses all three gaps: strict recording-level cross-validation, a four-model ablation study under identical conditions, and comprehensive evaluation across binary, three-class, and five-class tasks with statistical significance testing.

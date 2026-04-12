@@ -4,30 +4,30 @@
 
 \subsection{Conclusion}
 
-This project set out to build a hybrid deep learning model for automated epilepsy detection from EEG signals and to evaluate it rigorously. On both counts, the results are encouraging.
+This project set out to build a hybrid deep learning model for automated epilepsy detection from EEG signals and to evaluate it under a stricter protocol than the initial implementation. The final results support the usefulness of that design on the Bonn benchmark.
 
-The proposed 1D-CNN + Bi-LSTM + Self-Attention architecture achieves 99.67\% on binary classification, 97.69\% on three-class, and 84.51\% on the five-class task --- all evaluated under strict recording-level 10-Fold cross-validation with no data leakage. The five-class figure is notable: it exceeds the 67.24\% reported by Huang et al.\ \cite{huang2025} using a comparable evaluation protocol on the same dataset.
+The proposed 1D-CNN + Bi-LSTM + Self-Attention architecture achieves 99.67\% on binary classification, 97.69\% on three-class, and 84.51\% on the five-class task --- all evaluated under strict recording-level 10-Fold cross-validation with no data leakage. On Bonn five-class classification, the reported mean accuracy is higher than the 67.24\% reported by Huang et al.\ \cite{huang2025}, although the preprocessing pipelines differ and the comparison should therefore be treated as indicative rather than exact.
 
-The ablation study confirms that the three components contribute complementary strengths. Paired t-tests show the hybrid model significantly outperforms both the pure CNN ($p = 0.001$) and pure Bi-LSTM ($p = 0.001$) on five-class classification. The binary task, by contrast, shows no significant differences between any models --- a ceiling effect that the data itself makes unavoidable, given the order-of-magnitude amplitude differences between normal and seizure EEG.
+The ablation study suggests that the three components contribute complementary strengths. Paired t-tests show the hybrid model significantly outperforms both the pure CNN ($p = 0.001$) and pure Bi-LSTM ($p = 0.001$) on five-class classification. The binary task, by contrast, shows no significant differences in the reported pairwise tests, which is consistent with a ceiling effect in this particular Bonn setup.
 
-Attention weight visualisation shows the model focusing on high-amplitude seizure discharges, consistent with how neurologists identify ictal activity. This interpretability is important if such a system were ever to be used in a clinical setting.
+Attention weight visualisation highlights high-amplitude seizure regions and offers a qualitative view of model behaviour. It is useful for discussion, but it should not be treated as a clinically validated explanation.
 
 \subsection{Reflection}
 
-Looking back, the most valuable lesson from this project was not a technical one. It was about evaluation methodology.
+Looking back, the most useful lesson from this project concerned evaluation methodology more than model design.
 
-Early in the project, my initial preprocessing pipeline produced near-perfect accuracy --- over 99.9\% on binary classification. The numbers looked impressive. But my supervisor pointed out that such results were suspicious, and after investigation, I found that overlapping sliding-window segments from the same recording were leaking across the train/validation split. Fixing this dropped accuracy by about 0.3\% on binary and 2\% on five-class. The corrected numbers are less flashy but honest. This experience taught me that in machine learning, how you evaluate your model matters at least as much as the model itself.
+Early in the project, my initial preprocessing pipeline produced near-perfect accuracy --- over 99.9\% on binary classification. The numbers looked appealing, but my supervisor rightly questioned them. After investigation, I found that overlapping sliding-window segments from the same recording were leaking across the train/validation split. Fixing this dropped accuracy by about 0.3\% on binary and 2\% on five-class. The revised numbers are less dramatic, but they are more credible. This part of the project taught me that evaluation design matters at least as much as model design.
 
-On the technical side, migrating the entire codebase from TensorFlow to PyTorch mid-project was not planned but turned out to be necessary --- TensorFlow 2.11 dropped native Windows GPU support, and training on CPU was 80 times slower. The migration forced me to understand both frameworks at a deeper level than I would have otherwise.
+On the technical side, migrating the codebase from TensorFlow to PyTorch mid-project was not planned but turned out to be necessary --- TensorFlow 2.11 dropped native Windows GPU support, and under my local setup training on CPU was far slower than PyTorch with CUDA. The migration forced me to understand both frameworks at a deeper level than I would have otherwise.
 
-I also want to be transparent about the role of AI tools. I used Cursor (an AI-assisted IDE) extensively during development --- for code scaffolding, debugging, and drafting report text. Every piece of AI-generated code and text was reviewed and edited by me, but the tool undeniably accelerated the work. Whether this is a net positive or a crutch is something I am still thinking about. What I can say is that the conceptual decisions --- the choice of architecture, the data leakage fix, the experimental design --- were mine, even if the implementation was faster with AI assistance.
+I also want to be transparent about the role of AI tools. I used Cursor as a support tool for code scaffolding, debugging, and some report drafting. All generated code and text were reviewed and revised by me. The main project decisions --- including the model choice, the leakage correction, and the experimental design --- remained my responsibility.
 
 \subsection{Further Work}
 
 Several directions could extend this work:
 
 \begin{itemize}
-    \item \textbf{Larger, multi-channel datasets.} The Bonn dataset has only 500 single-channel recordings and is relatively clean. Validating on noisier, multi-channel datasets like CHB-MIT or TUH would test whether the model generalises to real clinical conditions.
+    \item \textbf{Larger, multi-channel datasets.} The Bonn dataset has only 500 single-channel recordings and is relatively clean. Validating on noisier, multi-channel datasets like CHB-MIT \cite{shoeb2010} or the Temple University Hospital EEG Corpus \cite{obeid2016} would test whether the model generalises to real clinical conditions.
 
     \item \textbf{Hyperparameter sensitivity analysis.} The current hyperparameters (window size 1024, dropout 0.4, LSTM units 128/64) were chosen based on literature defaults and preliminary experiments. A systematic grid search or Bayesian optimisation over these parameters could improve performance or confirm robustness.
 

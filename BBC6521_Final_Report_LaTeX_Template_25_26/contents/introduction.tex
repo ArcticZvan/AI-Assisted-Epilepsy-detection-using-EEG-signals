@@ -4,13 +4,17 @@
 
 \subsection{Research Background and Motivation}
 
-Epilepsy affects roughly 50 million people worldwide \cite{who2024epilepsy}. The condition causes recurrent seizures --- episodes of abnormal, excessive electrical activity in the brain --- and carries consequences well beyond the seizures themselves: cognitive decline, social stigma, and a real risk of injury during an episode.
+Epilepsy affects roughly 50 million people worldwide. The condition causes recurrent seizures --- episodes of abnormal, excessive electrical activity in the brain --- and carries consequences well beyond the seizures themselves: cognitive decline, social stigma, and a real risk of injury during an episode. In developing countries, where access to neurological specialists is limited, the diagnostic gap is even wider; up to 75\% of epilepsy patients in low-income regions do not receive appropriate treatment.
 
-Clinicians diagnose epilepsy primarily through the electroencephalogram (EEG), which records brain electrical activity via scalp or intracranial electrodes. A routine clinical workup may involve 24 to 72 hours of continuous EEG monitoring, all of which a neurologist must visually inspect. This manual review is slow, subjective, and dependent on specialist expertise that is simply not available in many healthcare settings. Even among trained neurologists, inter-rater agreement on subtle patterns --- such as inter-ictal discharges --- can be surprisingly low.
+Clinicians diagnose epilepsy primarily through the electroencephalogram (EEG), which records brain electrical activity via scalp or intracranial electrodes. A routine clinical workup may involve 24 to 72 hours of continuous EEG monitoring, all of which a neurologist must visually inspect to identify seizure events (ictal activity) and inter-ictal epileptiform discharges. This manual review is slow, subjective, and dependent on specialist expertise that is simply not available in many healthcare settings. Even among trained neurologists, inter-rater agreement on subtle patterns --- such as non-convulsive seizures and brief inter-ictal discharges --- can be surprisingly low.
 
-Automated EEG analysis has long been pursued as a way to address these problems. Early work relied on handcrafted features (wavelet coefficients, spectral power, statistical descriptors) fed into classifiers such as Support Vector Machines. These pipelines worked reasonably well for binary seizure detection, but they depend heavily on the choice of features and the expertise of whoever designs them.
+Automated EEG analysis has long been pursued as a way to address these problems. Early work relied on handcrafted features (wavelet coefficients, spectral power, statistical descriptors) fed into classifiers such as Support Vector Machines. These pipelines worked reasonably well for binary seizure detection, but they depend heavily on the choice of features and the expertise of whoever designs them. When the task becomes harder --- distinguishing between different types of abnormal brain activity, for instance --- handcrafted features often fall short.
 
-Deep learning changed the landscape. Convolutional Neural Networks (CNNs) can learn local morphological patterns --- spike-wave complexes, sharp transients --- directly from raw signals. Recurrent networks, particularly Long Short-Term Memory (LSTM) architectures, capture how those patterns evolve over time. And attention mechanisms allow a model to focus computational effort on the moments in a recording that matter most, rather than treating every time step equally. Combining these three ideas into a single architecture is the approach taken in this project.
+Recent deep learning methods have made it possible to learn EEG features directly from the signal itself. Convolutional Neural Networks (CNNs) can capture local morphological patterns --- spike-wave complexes and sharp transients --- without manual feature engineering. Recurrent networks, particularly Long Short-Term Memory (LSTM) architectures, model how those patterns evolve over time, while attention mechanisms allow the model to assign greater weight to the more informative parts of a recording.
+
+However, several issues still persist. Some published studies report very high accuracy under protocols that do not clearly separate segments from the same recording across training and validation. Many Bonn evaluations also focus on binary classification (normal vs.\ seizure), which is usually easier than finer-grained multi-class discrimination because the signal differences are large. Controlled ablation studies are less common, so it is often unclear which architectural component is responsible for the reported gain.
+
+This project addresses these gaps by combining CNN, Bi-LSTM, and Self-Attention into a single hybrid architecture, evaluated under a strict recording-level cross-validation protocol on the University of Bonn EEG dataset across three tasks of increasing difficulty.
 
 \subsection{Research Aims and Objectives}
 
@@ -27,15 +31,17 @@ Five objectives guide the work:
 
     \item Evaluate all four models across three classification tasks (binary, three-class, five-class) with paired t-tests to check whether performance differences are statistically meaningful.
 
-    \item Visualise the learned attention weights to show which temporal regions of the EEG the model relies on, providing a degree of interpretability important for any clinical application.
+    \item Visualise the learned attention weights to show which temporal regions of the EEG the model relies on, providing a qualitative view of model behaviour.
 \end{enumerate}
 
 \subsection{Report Structure}
 
-\textbf{Chapter~2} reviews the clinical and technical background: EEG signals, existing ML/DL approaches to seizure detection, and the research gaps this project addresses.
+The remainder of this report is organised as follows.
 
-\textbf{Chapter~3} describes the Bonn EEG dataset, the preprocessing pipeline (including the data leakage fix), the hybrid model architecture, baseline models, and training setup.
+\textbf{Chapter~2} reviews the clinical and technical background: EEG signals and their role in epilepsy diagnosis, existing machine learning and deep learning approaches to seizure detection, attention mechanisms in biomedical signal processing, and the research gaps this project addresses.
 
-\textbf{Chapter~4} presents classification results across all three tasks, error analysis via confusion matrices, attention weight visualisation, statistical significance tests, a comparison with published work, and a discussion of limitations.
+\textbf{Chapter~3} describes the Bonn EEG dataset, the preprocessing pipeline including the recording-level splitting strategy and the data leakage issue that was discovered and corrected, the proposed hybrid model architecture, the three baseline models, and the experimental setup.
 
-\textbf{Chapter~5} concludes the report with a summary of findings, personal reflections, and directions for future work.
+\textbf{Chapter~4} presents classification results across all three tasks, analyses error patterns through confusion matrices, visualises attention weights for model interpretability, conducts statistical significance testing, compares results with published literature, and discusses clinical applicability and limitations.
+
+\textbf{Chapter~5} concludes the report with a summary of key findings, reflections on the methodology and lessons learned, and directions for future work.

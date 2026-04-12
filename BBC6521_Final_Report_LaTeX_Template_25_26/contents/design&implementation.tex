@@ -6,18 +6,19 @@ This chapter describes the dataset, preprocessing pipeline, proposed model archi
 
 \subsection{University of Bonn EEG Dataset Description}
 
-The University of Bonn EEG dataset \cite{andrzejak2001} is one of the most widely used benchmark datasets for epileptic seizure detection research. It consists of five subsets (denoted A--E, or equivalently Z, O, N, F, S), each containing 100 single-channel EEG segments of 23.6 seconds duration. All signals were sampled at 173.61~Hz with 12-bit analog-to-digital conversion, resulting in 4097 data points per recording. A hardware bandpass filter with settings of 0.53--40~Hz (12~dB/oct) was applied during acquisition, eliminating the need for additional frequency-domain filtering in preprocessing.
+The University of Bonn EEG dataset \cite{andrzejak2001}, available through PhysioNet \cite{goldberger2000}, is one of the most widely used benchmark datasets for epileptic seizure detection research. It consists of five subsets (denoted A--E, or equivalently Z, O, N, F, S), each containing 100 single-channel EEG segments of 23.6 seconds duration. All signals were sampled at 173.61~Hz with 12-bit analog-to-digital conversion, resulting in 4097 data points per recording. A hardware bandpass filter with settings of 0.53--40~Hz (12~dB/oct) was applied during acquisition, eliminating the need for additional frequency-domain filtering in preprocessing.
 
 Table~\ref{table:bonn_dataset} summarises the five subsets and their clinical characteristics.
 
-\begin{table}[h]
+\begin{table}[H]
   \centering
   \begin{spacing}{1.35}
   \caption{University of Bonn EEG Dataset Description}\vspace{0.7em}
   \label{table:bonn_dataset}
-    \begin{tabular}{|p{1.5cm}|p{1.5cm}|p{5.5cm}|p{3cm}|p{2cm}|}
+    {\small
+    \begin{tabular}{|>{\raggedright\arraybackslash}p{2.0cm}|>{\raggedright\arraybackslash}p{1.6cm}|>{\raggedright\arraybackslash}p{5.0cm}|>{\raggedright\arraybackslash}p{2.8cm}|>{\raggedright\arraybackslash}p{1.7cm}|}
     \hline
-    \textbf{Subset} & \textbf{Label} & \textbf{Description} & \textbf{Recording Type} & \textbf{Recordings} \\
+    \textbf{Subset} & \textbf{Label} & \textbf{Description} & \textbf{Recording Type} & \textbf{Count} \\
     \hline
     Z (Set A) & Normal & Healthy volunteers, eyes open & Surface EEG & 100 \\
     \hline
@@ -30,6 +31,7 @@ Table~\ref{table:bonn_dataset} summarises the five subsets and their clinical ch
     S (Set E) & Ictal & Epilepsy patients, during seizure & Intracranial EEG & 100 \\
     \hline
     \end{tabular}
+    }
   \end{spacing}
 \end{table}
 
@@ -43,11 +45,29 @@ Three classification tasks of increasing difficulty are defined to comprehensive
 
 Figure~\ref{fig:signal_comparison} illustrates representative EEG waveforms from each subset. Normal recordings (Z, O) exhibit low-amplitude signals typically within $\pm$200~$\mu$V, while seizure recordings (S) display high-amplitude, rhythmic discharges frequently exceeding $\pm$1000~$\mu$V. The inter-ictal recordings (N, F) show intermediate characteristics with occasional epileptiform discharges.
 
-\begin{figure}[h]
+\begin{figure}[H]
 \centering
 \includegraphics[width=\textwidth]{figures/signal_comparison.png}
-\caption{Representative EEG signal waveforms from the five subsets of the Bonn dataset}
+\caption{Representative EEG signal waveforms from the five subsets of the Bonn dataset. Seizure (S) signals show distinctly higher amplitudes and rhythmic patterns compared to normal (Z, O) signals.}
 \label{fig:signal_comparison}
+\end{figure}
+
+The frequency-domain characteristics further highlight the differences between subsets. Figure~\ref{fig:fft_comparison} shows the Fast Fourier Transform (FFT) magnitude spectra for each class. Seizure recordings concentrate energy in the low-frequency delta and theta bands (0.5--8~Hz), while normal recordings show broader spectral distributions with prominent alpha-band (8--13~Hz) activity, particularly in the eyes-closed condition (Set O).
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=\textwidth]{figures/fft_comparison.png}
+\caption{FFT frequency spectra for the five EEG subsets, revealing distinct spectral signatures}
+\label{fig:fft_comparison}
+\end{figure}
+
+Figure~\ref{fig:amplitude_distribution} shows the amplitude distributions for each subset. The clear separation between Normal ($<$200~$\mu$V) and Seizure ($>$1000~$\mu$V) amplitudes explains why binary classification is straightforward, while the significant overlap between N and F distributions explains why five-class classification is much harder.
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=\textwidth]{figures/amplitude_distribution.png}
+\caption{Amplitude distribution histograms for the five EEG subsets}
+\label{fig:amplitude_distribution}
 \end{figure}
 
 \subsection{EEG Signal Preprocessing Pipeline}
@@ -70,7 +90,7 @@ An earlier version of this project's pipeline applied sliding-window segmentatio
     \item The StandardScaler is fitted exclusively on training data, then applied to transform validation data.
 \end{enumerate}
 
-After correction, the binary accuracy decreased from 99.95\% to 99.67\%, and the five-class accuracy from 86.60\% to 84.51\%, confirming a more rigorous evaluation framework.
+After correction, the binary accuracy decreased from 99.95\% to 99.67\%, and the five-class accuracy from 86.60\% to 84.51\%, which is consistent with the removal of optimistic bias introduced by the earlier leakage-prone pipeline.
 
 \subsubsection{Sliding Window Segmentation}
 
@@ -80,16 +100,26 @@ Each 4097-point recording is segmented using a sliding window of 1024 data point
 
 A global Z-Score normalisation is applied using \texttt{StandardScaler}: a single mean and standard deviation are computed across all data points in the training set of each fold, then used to transform both training and validation data. This approach preserves inter-window amplitude differences --- an important discriminative feature, as seizure signals exhibit significantly higher amplitudes than normal recordings.
 
+Figure~\ref{fig:preprocessing_pipeline} summarises the complete preprocessing and evaluation pipeline.
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=\textwidth]{figures/preprocessing_pipeline.png}
+\caption{Preprocessing and evaluation pipeline. The red dashed box highlights the recording-level split that prevents data leakage. Sliding window segmentation and normalisation are applied independently to training and validation sets.}
+\label{fig:preprocessing_pipeline}
+\end{figure}
+
 \subsection{Proposed Hybrid Model Architecture}
 
 The proposed model is a hybrid deep learning architecture combining three complementary components: a 1D Convolutional Neural Network (1D-CNN) for local feature extraction, a Bidirectional Long Short-Term Memory network (Bi-LSTM) for temporal dependency modelling, and a Self-Attention mechanism for focusing on discriminative time steps. Table~\ref{table:model_architecture} summarises the architecture.
 
-\begin{table}[h]
+\begin{table}[H]
   \centering
   \begin{spacing}{1.35}
   \caption{Proposed Hybrid Model Architecture}\vspace{0.7em}
   \label{table:model_architecture}
-    \begin{tabular}{|p{2.5cm}|p{7cm}|p{4cm}|}
+    {\small
+    \begin{tabular}{|>{\raggedright\arraybackslash}p{2.8cm}|>{\raggedright\arraybackslash}p{6.5cm}|>{\raggedright\arraybackslash}p{4.0cm}|}
     \hline
     \textbf{Component} & \textbf{Configuration} & \textbf{Role} \\
     \hline
@@ -106,8 +136,18 @@ The proposed model is a hybrid deep learning architecture combining three comple
     Classifier & Dense(128$\rightarrow$64), ReLU, Dropout(0.4), Output & Classification head \\
     \hline
     \end{tabular}
+    }
   \end{spacing}
 \end{table}
+
+Figure~\ref{fig:model_architecture} provides a visual overview of the hybrid model architecture, showing the data flow from input through each component to the final classification output.
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=0.85\textwidth]{figures/model_architecture.png}
+\caption{Architecture of the proposed hybrid 1D-CNN + Bi-LSTM + Self-Attention model. Tensor shapes are annotated at each stage. The CNN extracts local features (blue), the Bi-LSTM models temporal dependencies (green), the Self-Attention assigns importance weights (orange), and the classifier produces the final output (grey).}
+\label{fig:model_architecture}
+\end{figure}
 
 \subsubsection{1D-CNN Feature Extraction}
 
@@ -115,36 +155,33 @@ The 1D-CNN module consists of two convolutional layers with 64 and 128 filters r
 
 \subsubsection{Bidirectional LSTM}
 
-The output of the CNN is passed to two stacked Bi-LSTM layers with 128 and 64 hidden units respectively. Each Bi-LSTM processes the sequence in both forward and backward directions, producing output vectors of dimension $2 \times \text{hidden\_units}$ at each time step. This bidirectional processing captures both past and future temporal context, which is essential for modelling the evolution of seizure dynamics over time.
+The output of the CNN is passed to two stacked Bi-LSTM layers with 128 and 64 hidden units respectively. Each Bi-LSTM processes the sequence in both forward and backward directions, producing output vectors of dimension $2 \times \text{hidden\_units}$ at each time step. This bidirectional processing captures both past and future temporal context, which can help model the evolution of seizure dynamics over time.
 
 \subsubsection{Self-Attention Mechanism}
 
 The Self-Attention layer computes an importance weight $\alpha_t$ for each time step $t$ of the Bi-LSTM output $h_t$:
-\begin{equation}
-e_t = \tanh(\mathbf{W} h_t + b)
-\end{equation}
-\begin{equation}
-\alpha_t = \frac{\exp(\mathbf{u}^\top e_t)}{\sum_{j=1}^{T} \exp(\mathbf{u}^\top e_j)}
-\end{equation}
-\begin{equation}
-c = \sum_{t=1}^{T} \alpha_t h_t
-\end{equation}
+\begin{align}
+e_t &= \tanh(\mathbf{W} h_t + b) \\
+\alpha_t &= \frac{\exp(\mathbf{u}^\top e_t)}{\sum_{j=1}^{T} \exp(\mathbf{u}^\top e_j)} \\
+c &= \sum_{t=1}^{T} \alpha_t h_t
+\end{align}
 where $\mathbf{W} \in \mathbb{R}^{128 \times 64}$ and $\mathbf{u} \in \mathbb{R}^{64}$ are learnable parameters. The context vector $c$ is a weighted sum of all time steps, allowing the model to focus on the most discriminative temporal regions rather than treating all time steps equally.
 
 \subsubsection{Output Layer}
 
-For binary classification, the output layer consists of a single neuron with sigmoid activation, trained with Binary Cross-Entropy with Logits Loss. For three-class and five-class tasks, the output layer has $N$ neurons (where $N$ is the number of classes) with softmax activation (implicitly applied through Cross-Entropy Loss). The total number of trainable parameters is approximately 504{,}000 (1.92~MB).
+For binary classification, the classifier outputs a single logit, which is optimised with Binary Cross-Entropy with Logits Loss; the sigmoid transformation is therefore handled inside the loss function rather than by a separate output activation. For three-class and five-class tasks, the output layer has $N$ neurons (where $N$ is the number of classes) and is trained with Cross-Entropy Loss, which applies softmax implicitly. The total number of trainable parameters is approximately 504{,}000 (1.92~MB).
 
 \subsection{Baseline Models for Comparative Analysis}
 
 Three baseline models were implemented to serve as an ablation study, systematically evaluating the contribution of each component in the hybrid architecture. Table~\ref{table:baselines} summarises the baselines and their roles.
 
-\begin{table}[h]
+\begin{table}[H]
   \centering
   \begin{spacing}{1.35}
   \caption{Baseline Models for Ablation Study}\vspace{0.7em}
   \label{table:baselines}
-    \begin{tabular}{|p{2.8cm}|p{6.2cm}|p{4.5cm}|}
+    {\small
+    \begin{tabular}{|>{\raggedright\arraybackslash}p{3.0cm}|>{\raggedright\arraybackslash}p{6.0cm}|>{\raggedright\arraybackslash}p{4.0cm}|}
     \hline
     \textbf{Baseline} & \textbf{Architecture} & \textbf{Ablation Purpose} \\
     \hline
@@ -155,6 +192,7 @@ Three baseline models were implemented to serve as an ablation study, systematic
     Pure Bi-LSTM + Attention & 2-layer Bi-LSTM (128, 64) + Self-Attention (no CNN) & Remove local feature extraction (no CNN) \\
     \hline
     \end{tabular}
+    }
   \end{spacing}
 \end{table}
 
@@ -164,12 +202,13 @@ The SVM baseline uses Wavelet Packet Decomposition to extract 16 sub-band nodes,
 
 Table~\ref{table:training_config} lists the training hyperparameters used for all deep learning models.
 
-\begin{table}[h]
+\begin{table}[H]
   \centering
   \begin{spacing}{1.35}
   \caption{Training Hyperparameters}\vspace{0.7em}
   \label{table:training_config}
-    \begin{tabular}{|p{5cm}|p{5cm}|}
+    {\small
+    \begin{tabular}{|>{\raggedright\arraybackslash}p{5.2cm}|>{\raggedright\arraybackslash}p{5.2cm}|}
     \hline
     \textbf{Parameter} & \textbf{Value} \\
     \hline
@@ -190,10 +229,11 @@ Table~\ref{table:training_config} lists the training hyperparameters used for al
     Random seed & 42 \\
     \hline
     \end{tabular}
+    }
   \end{spacing}
 \end{table}
 
-All deep learning experiments were conducted on an NVIDIA GeForce RTX 3070 Ti GPU (8~GB VRAM) using PyTorch 2.x with CUDA acceleration. The framework was migrated from TensorFlow/Keras due to the discontinuation of native Windows GPU support in TensorFlow 2.11 and later versions, which resulted in an approximately 80$\times$ speedup (from $\sim$55~s to $\sim$0.7~s per training epoch).
+All deep learning experiments were conducted on an NVIDIA GeForce RTX 3070 Ti GPU (8~GB VRAM) using PyTorch 2.x with CUDA acceleration. The framework was migrated from TensorFlow/Keras because native Windows GPU support was discontinued in TensorFlow 2.11 and later versions. Under the local setup used in this project, that change enabled GPU training and reduced the measured wall-clock time from roughly $\sim$55~s to $\sim$0.7~s per training epoch.
 
 The evaluation metrics used throughout this study are:
 \begin{itemize}
