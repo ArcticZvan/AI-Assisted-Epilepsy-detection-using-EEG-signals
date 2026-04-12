@@ -2,62 +2,40 @@
 \setcounter{section}{1} \setcounter{subsection}{0}
 \phantomsection \addcontentsline{toc}{section}{\textit{Chapter 1: Introduction}}
 
-The \textit{Introduction} is one of the most important parts of your report as it gives a brief overview that will make the reader understand (i) what you set out to do and (ii) what you achieved. Many readers will read the \textit{Introduction} first and then the  \textit{Conclusions} to get an overview before reading the detail – so it is important that both sections are very carefully written.
+\subsection{Research Background and Motivation}
 
-It is very important that \textit{Introduction} introduces the \textbf{report} and the \textbf{project} – it is not there to introduce the subject in general.
+Epilepsy affects roughly 50 million people worldwide \cite{who2024epilepsy}. The condition causes recurrent seizures --- episodes of abnormal, excessive electrical activity in the brain --- and carries consequences well beyond the seizures themselves: cognitive decline, social stigma, and a real risk of injury during an episode.
 
-There are no rules on how to write an introduction, but it should include what the project is about, give \textit{a very short description} of the technical context in which the project is carried out and explain the motivation for the work. If you are doing an implementation project it must explain what functionality the system \textbf{realises}, and if you are doing a research project what is the novelty of the approach used. 
+Clinicians diagnose epilepsy primarily through the electroencephalogram (EEG), which records brain electrical activity via scalp or intracranial electrodes. A routine clinical workup may involve 24 to 72 hours of continuous EEG monitoring, all of which a neurologist must visually inspect. This manual review is slow, subjective, and dependent on specialist expertise that is simply not available in many healthcare settings. Even among trained neurologists, inter-rater agreement on subtle patterns --- such as inter-ictal discharges --- can be surprisingly low.
 
-Very importantly, it should clearly indicate what you have done for the project. 
+Automated EEG analysis has long been pursued as a way to address these problems. Early work relied on handcrafted features (wavelet coefficients, spectral power, statistical descriptors) fed into classifiers such as Support Vector Machines. These pipelines worked reasonably well for binary seizure detection, but they depend heavily on the choice of features and the expertise of whoever designs them.
 
-A good introduction should be no more than 4 pages.
-\subsection{Format}
-\subsubsection{Format for headings}
-Format for level 1, 2 and 3 headings is given in this template; just choose the relevant style from the format list.
+Deep learning changed the landscape. Convolutional Neural Networks (CNNs) can learn local morphological patterns --- spike-wave complexes, sharp transients --- directly from raw signals. Recurrent networks, particularly Long Short-Term Memory (LSTM) architectures, capture how those patterns evolve over time. And attention mechanisms allow a model to focus computational effort on the moments in a recording that matter most, rather than treating every time step equally. Combining these three ideas into a single architecture is the approach taken in this project.
 
-\subsubsection{Format for body text}
-Font Times New Roman, Font size should be 12pt, 1.5 line spacing in and justified. Do not indent the first line.
-% the default setting in LaTeX already satisfies the above theme.
+\subsection{Research Aims and Objectives}
 
-\subsubsection{Format for equations}
-Equations should be centred with a numbered caption on the right; an example is below:
-\begin{equation}
-I_{\,i, own}=P_{\,total, j} \cdot \gamma_{\,i, j} - P_{\,i,recv}
-\end{equation}
+The aim of this project is to build and evaluate a hybrid deep learning model --- specifically, a 1D-CNN combined with a Bidirectional LSTM and Self-Attention mechanism --- for automated epilepsy seizure detection from EEG signals.
 
-\subsubsection{Format for figures}
+Five objectives guide the work:
 
-Figures should be centred and followed by captions. Captions should be centred, 10pt font 
-Times New Roman Bold. Use automatic numbering without chapter number for captions. Select “Caption” from Styles and Formatting to format captions.
+\begin{enumerate}
+    \item Implement a strict recording-level cross-validation framework on the University of Bonn EEG dataset, preventing the data leakage that undermines many published results in this area.
 
-Whenever you include a figure in your document you must reference it in the text e.g. this is a reference to Figure\ref{fig:examplefig}.
+    \item Design and implement the hybrid 1D-CNN + Bi-LSTM + Self-Attention architecture, integrating local feature extraction, temporal modelling, and attention weighting in a single end-to-end pipeline.
 
-When presenting graphs, make sure you label the axes and include units where applicable. Also include a legend (i.e. key) where appropriate.
+    \item Build three baseline models --- SVM with wavelet-packet features, a pure 1D-CNN, and a pure Bi-LSTM with attention --- to run as an ablation study and isolate the contribution of each component.
 
-\begin{figure}[h]
-\centering
-\includegraphics[width=10cm]{figures/examplefig.PNG}
-\caption{Comparison of energy components}
-\label{fig:examplefig}
-\end{figure}
+    \item Evaluate all four models across three classification tasks (binary, three-class, five-class) with paired t-tests to check whether performance differences are statistically meaningful.
 
-\subsubsection{Format for Tables}
-Unlike figures, the caption for a table should be before the table; Table\ref{table:exampletable} shows an example of the correct layout.
+    \item Visualise the learned attention weights to show which temporal regions of the EEG the model relies on, providing a degree of interpretability important for any clinical application.
+\end{enumerate}
 
+\subsection{Report Structure}
 
-\begin{table}[h]  
-  \centering  
-  \begin{spacing}{1.35}  
-  \caption{Example Table}\vspace{0.7em}
-  \label{table:exampletable} 
-    \begin{tabular}{|p{4cm}|p{4cm}|p{4cm}|}   
-    \hline
-     & & \\  
-    \hline
-     & & \\
-    \hline
-     & & \\
-    \hline
-    \end{tabular}
-  \end{spacing}
-\end{table}
+\textbf{Chapter~2} reviews the clinical and technical background: EEG signals, existing ML/DL approaches to seizure detection, and the research gaps this project addresses.
+
+\textbf{Chapter~3} describes the Bonn EEG dataset, the preprocessing pipeline (including the data leakage fix), the hybrid model architecture, baseline models, and training setup.
+
+\textbf{Chapter~4} presents classification results across all three tasks, error analysis via confusion matrices, attention weight visualisation, statistical significance tests, a comparison with published work, and a discussion of limitations.
+
+\textbf{Chapter~5} concludes the report with a summary of findings, personal reflections, and directions for future work.

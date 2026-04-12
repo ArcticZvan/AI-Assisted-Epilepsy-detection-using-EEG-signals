@@ -1,18 +1,19 @@
 \onehalfspacing
+\phantomsection
+\addcontentsline{toc}{section}{\textit{摘要}}
 {\fontsize{16pt}{30pt}\selectfont \noindent\textbf{摘要}}
-\vspace{0.7cm}
+\vspace{0.5cm}
 {\fontsize{12pt}{18pt}\selectfont
-% replace the paragraph below with your abstract
 
-This is the Chinese translation of the Abstract.
+癫痫是一种常见的神经系统疾病，全球约有5000万患者。脑电图（EEG）信号的自动分析为辅助临床医生进行癫痫发作检测提供了一种有前景的方法。本研究提出了一种结合一维卷积神经网络（1D-CNN）、双向长短期记忆网络（Bi-LSTM）和自注意力机制的混合深度学习架构，利用波恩大学EEG数据集实现癫痫发作的自动检测。本研究采用严格的录音级别10折交叉验证策略，以防止滑动窗口重叠导致的数据泄露。所提出的模型与三个基线模型——基于小波包特征的SVM、纯1D-CNN和纯Bi-LSTM——在二分类、三分类和五分类任务上进行了系统性消融实验对比。实验结果表明，混合模型在二分类任务上达到99.67\%的准确率，三分类任务达到97.69\%，五分类任务达到84.51\%，在五分类任务上显著优于纯CNN（$p = 0.001$）和纯Bi-LSTM（$p = 0.001$）基线模型。注意力权重可视化验证了模型能够聚焦于具有临床意义的时间特征，增强了模型的可解释性。
 
 }
-\vspace{1.0cm}
+\vspace{0.5cm}
+\addcontentsline{toc}{section}{\textit{关键词}}
 {\fontsize{16pt}{30pt}\selectfont \noindent\textbf{关键词}}
-\vspace{0.7cm}
+\vspace{0.5cm}
 {\fontsize{12pt}{18pt}\selectfont
-% replace the paragraph below with your keywords
 
-This is the Chinese translation of the Keywords, separated by commas and following the same sequence.
+癫痫检测，脑电信号，深度学习，一维卷积神经网络，双向长短期记忆网络，自注意力机制，波恩数据集，交叉验证
 
 }

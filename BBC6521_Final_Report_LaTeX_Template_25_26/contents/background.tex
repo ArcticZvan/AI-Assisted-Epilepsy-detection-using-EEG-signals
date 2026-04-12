@@ -1,10 +1,59 @@
-\section*{Chapter 2: Background}
+\section*{Chapter 2: Background and Related Work}
 \setcounter{section}{2} \setcounter{subsection}{0}
-\phantomsection \addcontentsline{toc}{section}{\textit{Chapter 2: Background}}
+\phantomsection \addcontentsline{toc}{section}{\textit{Chapter 2: Background and Related Work}}
 
+\subsection{EEG Signals and Epilepsy Clinical Diagnosis}
 
-In this part of the report, you should give all the relevant background information about your project. Remember that your reader will not necessarily know the background technology you are using, so it is worthwhile to let them know.
+The brain generates electrical signals through the coordinated firing of millions of neurons. An EEG captures these signals --- typically at sampling rates between 128 and 512~Hz --- using electrodes placed on the scalp (surface EEG) or directly on the brain surface (intracranial EEG). The resulting waveforms are usually described in terms of frequency bands: delta (0.5--4~Hz), theta (4--8~Hz), alpha (8--13~Hz), beta (13--30~Hz), and gamma (above 30~Hz).
 
-Also if your project is a research project, this is a good place to put down the related work or state of the art in the area – what the others have done? And why your research is novel?
+For epilepsy diagnosis, three types of EEG patterns matter. \textit{Ictal} activity, recorded during a seizure, shows high-amplitude rhythmic discharges (often exceeding 1000~$\mu$V) caused by synchronised neuronal firing. \textit{Inter-ictal} activity, recorded between seizures, may contain epileptiform discharges --- sharp waves and spike-wave complexes --- that help localise the epileptogenic zone. \textit{Normal} activity shows typical physiological rhythms with no pathological transients, usually below 200~$\mu$V.
 
-But don't make the background too long with every detail. It should be relevant to your project, with all the necessary information, written nicely and crisply.
+In practice, a neurologist reviews hours (sometimes days) of continuous EEG to spot these patterns. The process is tedious, and different clinicians do not always agree on what they see. This is especially true for subtle inter-ictal patterns and non-convulsive seizures. The result is a clear motivation for automated analysis tools.
+
+\subsection{Traditional and Deep Learning for EEG-based Epilepsy Detection}
+
+\subsubsection{Traditional Machine Learning}
+
+Before deep learning, the standard pipeline for EEG classification involved extracting handcrafted features --- power spectral density, wavelet coefficients, Hjorth parameters, and so on --- and feeding them into a classifier. SVMs were a popular choice due to their effectiveness in high-dimensional spaces. The main weakness of this approach is that the quality of results depends heavily on the features chosen, which requires domain expertise and careful tuning. Features that work well for one dataset or patient population may transfer poorly to another.
+
+\subsubsection{CNN-based Approaches}
+
+CNNs changed the game by learning features automatically from raw (or near-raw) EEG data. Acharya et al.\ \cite{acharya2018} proposed a deep 13-layer CNN for seizure detection on the Bonn dataset, achieving 88.67\% accuracy on a three-class task (normal, preictal, seizure) with 10-fold cross-validation. Their work was among the first to show that CNNs can learn discriminative EEG patterns without hand-engineered features, though the three-class accuracy left room for improvement.
+
+Ullah et al.\ \cite{ullah2018} took a different approach with a pyramidal 1D-CNN, processing raw EEG segments and reporting 99.1\% ($\pm$0.9\%) accuracy on binary detection. The pyramid structure uses progressively deeper layers to capture multi-scale features. But like many CNN architectures, it inherently treats the input as a fixed-size pattern, with no explicit mechanism for modelling how EEG dynamics unfold over time.
+
+\subsubsection{LSTM-based Approaches}
+
+Recurrent networks --- LSTMs in particular --- address the temporal limitation of CNNs. Thara et al.\ \cite{thara2019} used stacked bidirectional LSTMs and reported 99\% binary accuracy on the Bonn dataset. Their preprocessing split each recording into 23 non-overlapping segments of 178 points each, then shuffled all segments before doing an 80/20 train-test split. This means segments from the same recording could end up in both sets --- a subtle form of data leakage that their paper does not discuss.
+
+Hussein et al.\ \cite{hussein2019} developed an optimised LSTM with regularisation for robust seizure detection. Their results confirm that temporal modelling helps, but pure LSTMs process raw signal values directly, potentially missing local morphological features that a CNN would catch.
+
+\subsubsection{Hybrid Architectures and Recent Work}
+
+The idea of combining CNNs with LSTMs to get the best of both worlds has gained traction in recent years. Huang et al.\ \cite{huang2025} proposed STFFDA, a model combining CNN with 1D-SE attention and Bi-LSTM with dot-product attention, published in \textit{Scientific Reports} in 2025. On the Bonn dataset with 10-Fold cross-validation, they achieved only 67.24\% on five-class classification. Part of the reason for this low accuracy appears to be their unusual preprocessing: they treat each of the 4097 data points as an independent 178-dimensional sample, discarding most of the temporal context.
+
+Chen et al.\ \cite{chen2023} took a feature-engineering-heavy approach, combining Discrete Wavelet Transform features with Random Forest selection and CNN classification. They reported 98.47\% on binary detection with a 3:1 split, but did not attempt five-class evaluation or cross-validation.
+
+A comprehensive review by Shoeibi et al.\ \cite{shoeibi2021} surveyed deep learning methods for seizure detection and found that hybrid architectures combining multiple network types tend to outperform single-architecture models, particularly on harder classification tasks. This finding motivates the hybrid approach taken in this project.
+
+\subsection{Attention Mechanisms in Biomedical Signal Processing}
+
+Not all parts of an EEG recording are equally informative. A 23-second recording might contain a brief 2-second seizure discharge that is critical for classification, while the rest of the signal is unremarkable. Standard pooling operations (global average pooling, for instance) treat every time step the same, diluting the signal from those critical moments.
+
+Self-Attention addresses this by learning a weight for each time step. Given a sequence of Bi-LSTM outputs $\{h_1, \ldots, h_T\}$, the attention mechanism used in this project computes:
+\begin{equation}
+\alpha_t = \frac{\exp(\mathbf{u}^\top \tanh(\mathbf{W} h_t + b))}{\sum_{j=1}^{T} \exp(\mathbf{u}^\top \tanh(\mathbf{W} h_j + b))}, \qquad c = \sum_{t=1}^{T} \alpha_t h_t
+\end{equation}
+where $\mathbf{W}$ and $\mathbf{u}$ are learnable parameters and $\alpha_t$ is the attention weight for time step $t$. The context vector $c$ aggregates the entire sequence into a single representation, weighed by learned importance. This mechanism has been applied successfully in other biomedical domains including ECG classification and EMG analysis.
+
+\subsection{Research Gaps and Study Novelty}
+
+Three gaps in the existing literature motivate this study:
+
+\textbf{Data leakage in evaluation.} Many studies --- including Thara et al.\ \cite{thara2019} --- use segment-level or sample-level splitting, where overlapping windows from the same recording can appear in both training and validation sets. This inflates accuracy and makes results hard to trust. Few papers explicitly enforce recording-level splitting.
+
+\textbf{No systematic ablation.} Most papers compare their model against unrelated baselines, making it unclear which component actually helps. A controlled comparison where the same training data and evaluation protocol are used across a hybrid model and its individual components (CNN-only, LSTM-only) is rarely done.
+
+\textbf{Under-explored multi-class classification.} Binary seizure detection is the focus of most work, but it is also the easiest task --- the signal differences between normal and seizure EEG are large enough that even simple methods achieve near-perfect accuracy. The five-class task, which requires distinguishing between different brain states and recording locations, is where model design actually matters. The best reported five-class accuracy on the Bonn dataset to date is 67.24\% \cite{huang2025}, suggesting room for improvement.
+
+This project addresses all three gaps: strict recording-level cross-validation, a four-model ablation study under identical conditions, and comprehensive evaluation across binary, three-class, and five-class tasks with statistical significance testing.

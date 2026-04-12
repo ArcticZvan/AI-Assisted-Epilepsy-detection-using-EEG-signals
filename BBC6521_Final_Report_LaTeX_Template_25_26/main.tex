@@ -1,6 +1,7 @@
 \documentclass[12pt,a4paper,UTF8]{article}
 \usepackage{requirements}
 \usepackage{environments}
+\setcitestyle{square}
 
 \begin{document}
 
@@ -41,6 +42,7 @@
 \input{contents/conclusion&furtherwork}
 
 \newpage
+\phantomsection
 \addcontentsline{toc}{section}{\textit{References}}
 \bibliography{reference}
 % Referencing in LaTeX: A Quick Guide
@@ -63,29 +65,6 @@
 %    - Example (try uncomment the following line and run compile to see the result):
      % This method was proposed in \cite{basar2019,mouftah2018,qmul2024,saputra2019}.
 
-%%%%%%%% delete the following paragraphs in your report.%%%%%%%%
-Everything you cite from other sources should be properly referenced. The QMUL Faculty of Science and Engineering has identified the Vancouver referencing style and the IEEE style as the recommended styles for project reports. Details about the referencing style and examples can be found online. \href{https://www.qmul.ac.uk/library/academic-skills/referencing-hub/referencing-guides-and-resources}{https://www.qmul.ac.uk/library/academic-skills/referencing-hub/referencing-guides-and-resources}
-
-It is recommended to prepare the references with a reference management software, such as \href{https://qmplus.qmul.ac.uk/mod/book/view.php?id=663133&chapterid=73651}{EndNote} or \href{https://qmplus.qmul.ac.uk/mod/book/view.php?id=663133&chapterid=73653}{Zotero} to automate some of the processes of collecting, managing and using references. Queen Mary Library Services promote the use of \href{http://ezproxy.library.qmul.ac.uk/login?url=https://www.citethemrightonline.com/}{Cite Them Right Online} (login required) as a tool to support Queen Mary students in their referencing.
-
-Here are some examples in Vancouver referencing style:
-
-\textbf{Book Chapters:}
-
-Mouftah HT, Erol-Kantarci M, Husain Rehmani M. Transportation and Power Grid in Smart Cities: Communication Networks and Services. 1 ed: Wiley; 2018.
-
-\textbf{Journal Articles:}
-
-Basar E, Di Renzo M, De Rosny J, Debbah M, Alouini MS, Zhang R. Wireless Communications Through Reconfigurable Intelligent Surfaces. IEEE Access. 2019;7:116753–73.
-
-\textbf{Conference Papers:}
-
-Saputra YM, Hoang DT, Nguyen DN, Dutkiewicz E, Mueck MD, Srikanteswara S. Energy Demand Prediction with Federated Learning for Electric Vehicle Networks. 2019 IEEE Global Communications Conference (GLOBECOM). Waikoloa, HI, USA: IEEE; 2019. p. 1–6.
-
-\textbf{Online sources:}
-
-Queen Mary University of London. Student Guide to Generative AI [Internet]. 2024 [cited 15 Jan 2026]. Available from: \href{https://www.qmul.ac.uk/library/academic-skills/student-guide-to-generative-ai/}{https://www.qmul.ac.uk/library/academic-skills/student-guide-to-generative-ai/}
-%%%%%%%%%%% delete up to here%%%%%%%%%%%%
 
 \newpage
 \input{contents/acknowledgement}

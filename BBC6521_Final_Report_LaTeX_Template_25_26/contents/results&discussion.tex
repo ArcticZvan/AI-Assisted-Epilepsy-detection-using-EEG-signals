@@ -1,5 +1,246 @@
 \section*{Chapter 4: Results and Discussion}
-\setcounter{section}{4} \setcounter{subsection}{0}
-\phantomsection \addcontentsline{toc}{section}{\textit{Chapter 4: Results and Discussion}}
+\phantomsection \setcounter{section}{4} \setcounter{subsection}{0}
+\addcontentsline{toc}{section}{\textit{Chapter 4: Results and Discussion}}
 
-Most projects will have results, especially for a research project. But again you should talk to your supervisor about it.
+This chapter presents the experimental results of the proposed hybrid model and three baseline models across all classification tasks, followed by error analysis, attention visualisation, statistical significance testing, and a comparison with published literature.
+
+All results reported in this chapter are obtained from 10-Fold cross-validation with strict \textbf{recording-level splitting} (no data leakage). Metrics are reported as mean $\pm$ standard deviation across the 10 folds.
+
+\subsection{Classification Performance across All Tasks}
+
+\subsubsection{Binary Classification: Normal (Z+O) vs.\ Seizure (S)}
+
+Table~\ref{table:binary_results} presents the binary classification results. All four models achieve accuracy above 98.8\%, reflecting the substantial signal-level differences between normal EEG ($<$200~$\mu$V amplitude) and seizure activity ($>$1000~$\mu$V). This ceiling effect is consistent with findings reported in the literature: Thara et al.\ \cite{thara2019} reported 99\% and Ullah et al.\ \cite{ullah2018} reported 99.1\% on the same dataset.
+
+\begin{table}[h]
+  \centering
+  \begin{spacing}{1.35}
+  \caption{Binary Classification Results --- Normal (Z+O) vs.\ Seizure (S)}\vspace{0.7em}
+  \label{table:binary_results}
+    \begin{tabular}{|p{6cm}|p{3.5cm}|p{3.5cm}|}
+    \hline
+    \textbf{Model} & \textbf{Accuracy (\%)} & \textbf{F1 Score (\%)} \\
+    \hline
+    SVM + Wavelet Packet & 99.67 ($\pm$1.00) & 99.66 ($\pm$1.01) \\
+    \hline
+    Pure 1D-CNN & 98.86 ($\pm$1.91) & 98.84 ($\pm$1.95) \\
+    \hline
+    Pure Bi-LSTM + Attention & 99.48 ($\pm$1.29) & 99.47 ($\pm$1.29) \\
+    \hline
+    \textbf{CNN + Bi-LSTM + Attention (Ours)} & \textbf{99.67 ($\pm$0.85)} & \textbf{99.66 ($\pm$0.86)} \\
+    \hline
+    \end{tabular}
+  \end{spacing}
+\end{table}
+
+The hybrid model ties with SVM at 99.67\% accuracy but achieves the lowest variance ($\pm$0.85\% vs.\ $\pm$1.00\%), indicating the most stable performance across folds.
+
+\subsubsection{Three-class Classification: Normal vs.\ Inter-ictal vs.\ Seizure}
+
+Table~\ref{table:three_results} shows the three-class results. The introduction of the inter-ictal class increases task difficulty, as inter-ictal EEG shares some morphological features with both normal and seizure recordings.
+
+\begin{table}[h]
+  \centering
+  \begin{spacing}{1.35}
+  \caption{Three-class Classification Results --- Normal vs.\ Inter-ictal vs.\ Seizure}\vspace{0.7em}
+  \label{table:three_results}
+    \begin{tabular}{|p{6cm}|p{3.5cm}|p{3.5cm}|}
+    \hline
+    \textbf{Model} & \textbf{Accuracy (\%)} & \textbf{F1 Score (\%)} \\
+    \hline
+    SVM + Wavelet Packet & 94.20 ($\pm$2.44) & 94.19 ($\pm$2.44) \\
+    \hline
+    Pure 1D-CNN & 97.14 ($\pm$1.84) & 97.11 ($\pm$1.86) \\
+    \hline
+    Pure Bi-LSTM + Attention & 92.80 ($\pm$5.99) & 92.74 ($\pm$6.12) \\
+    \hline
+    \textbf{CNN + Bi-LSTM + Attention (Ours)} & \textbf{97.69 ($\pm$2.17)} & \textbf{97.68 ($\pm$2.17)} \\
+    \hline
+    \end{tabular}
+  \end{spacing}
+\end{table}
+
+The hybrid model achieves the highest accuracy at 97.69\%, outperforming SVM by +3.49\% and Pure Bi-LSTM by +4.89\%. The Pure Bi-LSTM exhibits notably high variance ($\pm$5.99\%), suggesting instability when processing raw EEG signals without CNN-based local feature preprocessing. The Pure CNN performs competitively at 97.14\%, only 0.55\% below the hybrid model.
+
+\subsubsection{Five-class Classification: Z vs.\ O vs.\ N vs.\ F vs.\ S}
+
+Table~\ref{table:five_results} presents the most challenging task. The five-class task requires the model to distinguish between physiologically similar subsets, particularly between N and F (both inter-ictal recordings from different brain regions) and between Z and O (both normal recordings under different eye conditions).
+
+\begin{table}[h]
+  \centering
+  \begin{spacing}{1.35}
+  \caption{Five-class Classification Results --- Z vs.\ O vs.\ N vs.\ F vs.\ S}\vspace{0.7em}
+  \label{table:five_results}
+    \begin{tabular}{|p{6cm}|p{3.5cm}|p{3.5cm}|}
+    \hline
+    \textbf{Model} & \textbf{Accuracy (\%)} & \textbf{F1 Score (\%)} \\
+    \hline
+    SVM + Wavelet Packet & 78.80 ($\pm$5.31) & 78.39 ($\pm$5.69) \\
+    \hline
+    Pure 1D-CNN & 78.86 ($\pm$3.77) & 75.95 ($\pm$5.12) \\
+    \hline
+    Pure Bi-LSTM + Attention & 73.09 ($\pm$8.37) & 71.92 ($\pm$9.24) \\
+    \hline
+    \textbf{CNN + Bi-LSTM + Attention (Ours)} & \textbf{84.51 ($\pm$3.62)} & \textbf{84.28 ($\pm$3.80)} \\
+    \hline
+    \end{tabular}
+  \end{spacing}
+\end{table}
+
+The hybrid model achieves 84.51\% accuracy, outperforming Pure CNN by +5.65\%, SVM by +5.71\%, and Pure Bi-LSTM by +11.42\%. The hybrid model also exhibits the lowest standard deviation ($\pm$3.62\%) among all deep learning models, confirming the most stable and reliable performance. This result demonstrates the complementary value of combining CNN-based local feature extraction with Bi-LSTM temporal modelling and attention-based weighting.
+
+Figure~\ref{fig:training_curves} shows the combined 10-fold training curves for the hybrid model on the binary and five-class tasks.
+
+\begin{figure}[h]
+\centering
+\begin{minipage}{0.48\textwidth}
+    \centering
+    \includegraphics[width=\textwidth]{figures/training_curves_binary_hybrid.png}
+\end{minipage}\hfill
+\begin{minipage}{0.48\textwidth}
+    \centering
+    \includegraphics[width=\textwidth]{figures/training_curves_five_hybrid.png}
+\end{minipage}
+\caption{Combined 10-fold training curves for the hybrid model: binary classification (left) and five-class classification (right)}
+\label{fig:training_curves}
+\end{figure}
+
+\subsection{Confusion Matrix and Error Pattern Analysis}
+
+Figure~\ref{fig:confusion_matrices} presents the aggregated confusion matrices for the hybrid model across all three tasks.
+
+\begin{figure}[h]
+\centering
+\begin{minipage}{0.32\textwidth}
+    \centering
+    \includegraphics[width=\textwidth]{figures/cm_binary_hybrid.png}
+\end{minipage}\hfill
+\begin{minipage}{0.32\textwidth}
+    \centering
+    \includegraphics[width=\textwidth]{figures/cm_three_hybrid.png}
+\end{minipage}\hfill
+\begin{minipage}{0.32\textwidth}
+    \centering
+    \includegraphics[width=\textwidth]{figures/cm_five_hybrid.png}
+\end{minipage}
+\caption{Aggregated confusion matrices for the hybrid model: binary (left), three-class (centre), and five-class (right)}
+\label{fig:confusion_matrices}
+\end{figure}
+
+The binary confusion matrix is near-perfect, with only occasional misclassification of a single seizure sample. The three-class matrix shows strong separation between all three classes, with inter-ictal being the most challenging category.
+
+The five-class confusion matrix reveals the primary error source: \textbf{confusion between Set~N and Set~F}. Both subsets contain inter-ictal EEG recordings from epilepsy patients --- Set~N from the hippocampal formation contralateral to the epileptogenic zone, and Set~F from within the epileptogenic zone itself. Their physiological similarity makes them inherently difficult to distinguish, even for expert neurologists. A secondary source of error is mild confusion between Set~Z (eyes open) and Set~O (eyes closed), which differ only in the presence or absence of the alpha rhythm.
+
+In contrast, Set~S (seizure) is almost never misclassified, confirming that ictal activity is highly distinctive regardless of the classification granularity.
+
+\subsection{Attention Weight Visualisation and Interpretability}
+
+To investigate the interpretability of the proposed model, the learned Self-Attention weights were extracted and visualised for representative EEG recordings from each class. Figure~\ref{fig:attention_heatmap} shows the attention weight distribution overlaid on the normalised EEG signal for four representative recordings.
+
+\begin{figure}[h]
+\centering
+\includegraphics[width=\textwidth]{figures/attention_heatmap.png}
+\caption{Self-Attention weight visualisation for representative EEG recordings from the five-class hybrid model. Red shaded regions indicate higher attention weights.}
+\label{fig:attention_heatmap}
+\end{figure}
+
+The visualisation reveals distinct attention patterns across different EEG classes:
+
+\begin{itemize}
+    \item \textbf{Seizure recordings (S)}: Attention is concentrated on the high-amplitude, rhythmic discharge regions, which are the hallmark of ictal activity. This aligns with the clinical criteria used by neurologists for seizure identification.
+    \item \textbf{Normal recordings (Z)}: Attention is distributed more uniformly across the signal, reflecting the absence of pathological transients.
+    \item \textbf{Inter-ictal recordings (N, F)}: Attention shows intermediate patterns, with occasional peaks corresponding to interictal epileptiform discharges (IEDs).
+\end{itemize}
+
+These findings suggest that the Self-Attention mechanism successfully learns to focus on clinically meaningful temporal features, providing a degree of interpretability that is valuable for potential clinical applications.
+
+\subsection{Statistical Significance Testing}
+
+To determine whether the observed performance differences are statistically reliable, paired t-tests were conducted across the 10 cross-validation folds for each pair of models within each task. Table~\ref{table:ttest} presents the key results.
+
+\begin{table}[h]
+  \centering
+  \begin{spacing}{1.35}
+  \caption{Paired t-test Results (Selected Comparisons)}\vspace{0.7em}
+  \label{table:ttest}
+    \begin{tabular}{|p{2cm}|p{4.5cm}|p{2cm}|p{2cm}|p{2cm}|}
+    \hline
+    \textbf{Task} & \textbf{Comparison} & \textbf{$t$-statistic} & \textbf{$p$-value} & \textbf{Significant?} \\
+    \hline
+    Binary & Hybrid vs.\ SVM & 0.000 & 1.000 & No \\
+    \hline
+    Binary & Hybrid vs.\ CNN & $-$1.403 & 0.194 & No \\
+    \hline
+    Three & Hybrid vs.\ SVM & 4.327 & \textbf{0.002} & \textbf{Yes} \\
+    \hline
+    Three & Hybrid vs.\ BiLSTM & $-$2.324 & \textbf{0.045} & \textbf{Yes} \\
+    \hline
+    Three & CNN vs.\ SVM & 3.950 & \textbf{0.003} & \textbf{Yes} \\
+    \hline
+    Five & Hybrid vs.\ CNN & $-$5.247 & \textbf{0.001} & \textbf{Yes} \\
+    \hline
+    Five & Hybrid vs.\ BiLSTM & $-$5.289 & \textbf{0.001} & \textbf{Yes} \\
+    \hline
+    Five & Hybrid vs.\ SVM & 2.205 & 0.055 & No \\
+    \hline
+    \end{tabular}
+  \end{spacing}
+\end{table}
+
+The statistical analysis reveals three key findings:
+
+\begin{enumerate}
+    \item \textbf{Binary task}: No significant differences exist between any model pair ($p > 0.05$ for all comparisons), confirming the ceiling effect discussed in Section~4.1.1. When the task is inherently easy, all reasonable approaches achieve near-perfect performance.
+
+    \item \textbf{Five-class task}: The hybrid model \textit{significantly} outperforms both the Pure CNN ($p = 0.001$) and Pure Bi-LSTM ($p = 0.001$), providing strong evidence that the combination of CNN and Bi-LSTM components yields genuine performance improvements rather than random variation.
+
+    \item \textbf{Hybrid vs.\ SVM on five-class}: Despite a 5.71\% mean accuracy advantage, the difference does not reach statistical significance ($p = 0.055$). This is attributable to the high inter-fold variance of SVM ($\pm$5.31\%), where SVM outperformed the hybrid model on 2 out of 10 folds. With a larger dataset or more folds, this comparison would likely reach significance.
+\end{enumerate}
+
+\subsection{Comparison with Published Literature}
+
+Table~\ref{table:literature_comparison} compares the proposed model with recently published methods on the Bonn EEG dataset.
+
+\begin{table}[h]
+  \centering
+  \begin{spacing}{1.35}
+  \caption{Comparison with Published Literature on the Bonn Dataset}\vspace{0.7em}
+  \label{table:literature_comparison}
+    \begin{tabular}{|p{4cm}|p{1cm}|p{2cm}|p{3.5cm}|p{2cm}|}
+    \hline
+    \textbf{Method} & \textbf{Year} & \textbf{Task} & \textbf{Evaluation} & \textbf{Accuracy} \\
+    \hline
+    Thara et al.\ \cite{thara2019} (Stacked Bi-LSTM) & 2019 & Binary & Single split (80/20) & 99.08\% \\
+    \hline
+    Ullah et al.\ \cite{ullah2018} (Pyramidal CNN) & 2018 & Binary & Single split & 99.10\% \\
+    \hline
+    Chen et al.\ \cite{chen2023} (RF + CNN) & 2023 & Binary & 3:1 split & 98.47\% \\
+    \hline
+    Huang et al.\ \cite{huang2025} (STFFDA) & 2025 & 5-class & 10-Fold CV & 67.24\% \\
+    \hline
+    \textbf{Ours (CNN+BiLSTM+Attn)} & \textbf{2026} & \textbf{Binary} & \textbf{10-Fold recording-level} & \textbf{99.67\%} \\
+    \hline
+    \textbf{Ours (CNN+BiLSTM+Attn)} & \textbf{2026} & \textbf{3-class} & \textbf{10-Fold recording-level} & \textbf{97.69\%} \\
+    \hline
+    \textbf{Ours (CNN+BiLSTM+Attn)} & \textbf{2026} & \textbf{5-class} & \textbf{10-Fold recording-level} & \textbf{84.51\%} \\
+    \hline
+    \end{tabular}
+  \end{spacing}
+\end{table}
+
+The proposed model achieves competitive or superior results across all tasks. On the five-class task, this work achieves 84.51\%, which substantially exceeds the 67.24\% reported by Huang et al.\ \cite{huang2025} using a dual-attention model published in \textit{Scientific Reports} (2025). Crucially, this study employs a stricter evaluation protocol (recording-level splitting) than most prior work, meaning the reported results are less likely to be inflated by data leakage.
+
+\subsection{Clinical Applicability and Limitations}
+
+The proposed system demonstrates potential as a clinical decision support tool for automated EEG screening. The near-perfect binary classification (99.67\%) suggests that the system could reliably flag seizure events in routine EEG monitoring, reducing the burden on neurologists and enabling faster diagnosis.
+
+The attention visualisation capability (Section~4.3) provides a degree of interpretability that is important for clinical adoption, as it allows clinicians to verify which temporal regions influenced the model's classification decision.
+
+However, several limitations must be acknowledged:
+
+\begin{itemize}
+    \item \textbf{Single dataset}: All experiments were conducted on the Bonn dataset, which is relatively small (500 recordings) and clean (pre-filtered, artefact-free). Performance on noisy, real-world clinical recordings may differ.
+    \item \textbf{Single-channel}: The Bonn dataset contains only single-channel EEG, whereas modern clinical EEG typically uses multi-channel montages (19+ channels). The model's ability to leverage spatial information from multi-channel data remains unexplored.
+    \item \textbf{Class imbalance}: The binary task involves a 2:1 class ratio (200 Normal vs.\ 100 Seizure recordings). While no explicit class weighting was applied and performance was unaffected, this imbalance should be considered when generalising to more imbalanced clinical datasets.
+    \item \textbf{Offline analysis}: The current system processes pre-recorded EEG segments and is not optimised for real-time streaming inference.
+\end{itemize}

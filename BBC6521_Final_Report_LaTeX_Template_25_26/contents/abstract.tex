@@ -1,12 +1,11 @@
 \onehalfspacing
-\phantomsection % this is to manually fix anchor
+\phantomsection
 \addcontentsline{toc}{section}{\textit{Abstract}}
 {\fontsize{16pt}{30pt}\selectfont \noindent\textbf{Abstract}}
 \vspace{0.5cm}
 {\fontsize{12pt}{18pt}\selectfont
-% replace the paragraph below with your abstract
 
-The abstract should be a short overview of the whole report (200-300 words maximum). It should give the reader enough information about your entire project to know what you have tried to do and whether you were successful.
+Epilepsy is a prevalent neurological disorder affecting approximately 50 million people worldwide. Automated analysis of electroencephalogram (EEG) signals offers a promising approach to assist clinicians in seizure detection. This study proposes a hybrid deep learning architecture combining a 1D Convolutional Neural Network (1D-CNN), Bidirectional Long Short-Term Memory network (Bi-LSTM), and Self-Attention mechanism for automated epileptic seizure detection using the University of Bonn EEG dataset. A strict recording-level 10-Fold cross-validation strategy is employed to prevent data leakage from overlapping sliding-window segments. The proposed model is systematically compared against three baselines --- SVM with wavelet-packet features, a pure 1D-CNN, and a pure Bi-LSTM with attention --- in a comprehensive ablation study across binary, three-class, and five-class classification tasks. Experimental results demonstrate that the hybrid model achieves 99.67\% accuracy on binary classification, 97.69\% on three-class, and 84.51\% on the challenging five-class task, significantly outperforming both the pure CNN ($p = 0.001$) and pure Bi-LSTM ($p = 0.001$) baselines on the five-class task. Attention weight visualisation confirms that the model learns to focus on clinically meaningful temporal features, enhancing interpretability.
 
 }
 \vspace{0.5cm}
@@ -14,10 +13,7 @@ The abstract should be a short overview of the whole report (200-300 words maxim
 {\fontsize{16pt}{30pt}\selectfont \noindent\textbf{Keywords}}
 \vspace{0.5cm}
 {\fontsize{12pt}{18pt}\selectfont
-% replace the paragraph below with your keywords
 
-Keyword 1, Keyword 2, Keyword 3 (List of Keywords, separated by commas)
+Epilepsy Detection, Electroencephalogram (EEG), Deep Learning, 1D Convolutional Neural Network, Bidirectional LSTM, Self-Attention, Bonn Dataset, Cross-Validation
 
 }
-
-

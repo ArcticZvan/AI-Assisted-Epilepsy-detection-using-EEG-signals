@@ -1,14 +1,61 @@
-\subsection*{Additional appendices (as needed)}
+\subsection*{Additional appendices}
 \phantomsection
-\addcontentsline{toc}{subsection}{Additional appendices (as needed)}
+\addcontentsline{toc}{subsection}{Additional appendices}
 
-Information that you think may be helpful or relevant for the reader but that is not directly relevant to the story of your project. Things that might be suitable as an appendix to a report are:
+\subsubsection*{Hyperparameter Configuration}
 
-\begin{itemize}
-    \item Large tables of numerical results that have been displayed graphically in the main body of the report.
-    \item Important parts of datasheets for specific devices you have used in your project if you think that they are important enough that the reader should have access to them without finding them off the web themselves.
-    \item Mathematical proofs and results that are important to show but not important to the flow of the story in the report.
-\end{itemize}
+Table~\ref{table:hyperparams_appendix} lists all hyperparameters used in the deep learning experiments.
 
-NOTE: Full code listings must NOT be included as an appendix, but extracts of code may be included in the body of the report to illustrate particular points. Code should be submitted as supporting documents to QMPlus.
+\begin{table}[h]
+  \centering
+  \renewcommand{\arraystretch}{1.2}
+  \caption{Complete Hyperparameter Configuration}\vspace{0.5em}
+  \label{table:hyperparams_appendix}
+  \begin{tabular}{|l|l|}
+    \hline
+    \textbf{Parameter} & \textbf{Value} \\
+    \hline
+    Sliding window size & 1024 data points ($\approx$5.9 s) \\
+    \hline
+    Window overlap & 50\% (stride = 512) \\
+    \hline
+    CNN filters & [64, 128] \\
+    \hline
+    CNN kernel size & 7 \\
+    \hline
+    Bi-LSTM hidden units & [128, 64] \\
+    \hline
+    Attention dimension & 64 \\
+    \hline
+    Dense layer units & 64 \\
+    \hline
+    Dropout rate & 0.4 (classifier), 0.2 (CNN) \\
+    \hline
+    Optimiser & Adam \\
+    \hline
+    Learning rate & $1 \times 10^{-4}$ \\
+    \hline
+    LR scheduler & ReduceLROnPlateau (factor=0.5, patience=7) \\
+    \hline
+    Early stopping patience & 15 epochs \\
+    \hline
+    Maximum epochs & 100 \\
+    \hline
+    Batch size & 64 \\
+    \hline
+    Cross-validation & 10-Fold Stratified, recording-level \\
+    \hline
+    Random seed & 42 \\
+    \hline
+    SVM kernel & RBF \\
+    \hline
+    SVM wavelet & Daubechies-4, 4 decomposition levels \\
+    \hline
+    SVM feature dimension & 64 \\
+    \hline
+  \end{tabular}
+\end{table}
 
+\subsubsection*{Code Repository}
+
+The complete source code for this project is available at: \url{https://github.com/} (to be made public after submission). The repository includes all model implementations, training scripts, evaluation scripts, and visualisation tools. A \texttt{README.md} file provides instructions for reproducing all experiments.

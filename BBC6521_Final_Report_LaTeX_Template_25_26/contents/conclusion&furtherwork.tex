@@ -2,16 +2,38 @@
 \phantomsection \setcounter{section}{5} \setcounter{subsection}{0}
 \addcontentsline{toc}{section}{\textit{Chapter 5: Conclusion and Further Work}}
 
-The conclusion is an important part of the report, as it states what you have done for the project.
-
 \subsection{Conclusion}
-It concludes the findings of your research or the outcome of implementing a system. A good conclusion will NOT repeat what you have done, but set out the achievements very crisply.
+
+This project set out to build a hybrid deep learning model for automated epilepsy detection from EEG signals and to evaluate it rigorously. On both counts, the results are encouraging.
+
+The proposed 1D-CNN + Bi-LSTM + Self-Attention architecture achieves 99.67\% on binary classification, 97.69\% on three-class, and 84.51\% on the five-class task --- all evaluated under strict recording-level 10-Fold cross-validation with no data leakage. The five-class figure is notable: it exceeds the 67.24\% reported by Huang et al.\ \cite{huang2025} using a comparable evaluation protocol on the same dataset.
+
+The ablation study confirms that the three components contribute complementary strengths. Paired t-tests show the hybrid model significantly outperforms both the pure CNN ($p = 0.001$) and pure Bi-LSTM ($p = 0.001$) on five-class classification. The binary task, by contrast, shows no significant differences between any models --- a ceiling effect that the data itself makes unavoidable, given the order-of-magnitude amplitude differences between normal and seizure EEG.
+
+Attention weight visualisation shows the model focusing on high-amplitude seizure discharges, consistent with how neurologists identify ictal activity. This interpretability is important if such a system were ever to be used in a clinical setting.
 
 \subsection{Reflection}
-This chapter should include a reflection statement for your project. You should critically reflect upon the technical skills developed, new knowledge gained, and lessons learnt on the project journey. You should also include reflections on broader ethical, social, legal, and environmental issues, allied with good professional practice and behaviour you have adopted in conducting your project.
 
-\subsection{Further work}
-Further work can be the next step of your research, or some functionality that can be added to the implementation to make it more practical.
+Looking back, the most valuable lesson from this project was not a technical one. It was about evaluation methodology.
 
-\vspace{\baselineskip}
-\noindent\textbf{NOTE: The total length of the report up to this point should be between 30 and 50 pages.}
+Early in the project, my initial preprocessing pipeline produced near-perfect accuracy --- over 99.9\% on binary classification. The numbers looked impressive. But my supervisor pointed out that such results were suspicious, and after investigation, I found that overlapping sliding-window segments from the same recording were leaking across the train/validation split. Fixing this dropped accuracy by about 0.3\% on binary and 2\% on five-class. The corrected numbers are less flashy but honest. This experience taught me that in machine learning, how you evaluate your model matters at least as much as the model itself.
+
+On the technical side, migrating the entire codebase from TensorFlow to PyTorch mid-project was not planned but turned out to be necessary --- TensorFlow 2.11 dropped native Windows GPU support, and training on CPU was 80 times slower. The migration forced me to understand both frameworks at a deeper level than I would have otherwise.
+
+I also want to be transparent about the role of AI tools. I used Cursor (an AI-assisted IDE) extensively during development --- for code scaffolding, debugging, and drafting report text. Every piece of AI-generated code and text was reviewed and edited by me, but the tool undeniably accelerated the work. Whether this is a net positive or a crutch is something I am still thinking about. What I can say is that the conceptual decisions --- the choice of architecture, the data leakage fix, the experimental design --- were mine, even if the implementation was faster with AI assistance.
+
+\subsection{Further Work}
+
+Several directions could extend this work:
+
+\begin{itemize}
+    \item \textbf{Larger, multi-channel datasets.} The Bonn dataset has only 500 single-channel recordings and is relatively clean. Validating on noisier, multi-channel datasets like CHB-MIT or TUH would test whether the model generalises to real clinical conditions.
+
+    \item \textbf{Hyperparameter sensitivity analysis.} The current hyperparameters (window size 1024, dropout 0.4, LSTM units 128/64) were chosen based on literature defaults and preliminary experiments. A systematic grid search or Bayesian optimisation over these parameters could improve performance or confirm robustness.
+
+    \item \textbf{Cross-dataset transfer learning.} Pre-training on a large, diverse EEG corpus and fine-tuning on a smaller target dataset could improve generalisation in data-scarce clinical settings.
+
+    \item \textbf{Real-time inference.} The current system processes pre-recorded segments. Deploying it for real-time EEG monitoring would require model compression (pruning, quantisation) and optimisation for edge hardware.
+
+    \item \textbf{Patient-specific adaptation.} EEG patterns vary substantially between individuals. Developing mechanisms for the model to adapt to a specific patient's baseline could improve detection accuracy in personalised settings.
+\end{itemize}
