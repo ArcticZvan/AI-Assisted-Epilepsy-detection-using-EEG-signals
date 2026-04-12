@@ -149,16 +149,43 @@ The supervisor raised concerns about high binary accuracy (>99%). The response:
 - Even SVM without sliding windows achieves 99.67% — task is inherently easy
 - Five-class is the real differentiator for the hybrid model
 
-## 8. Remaining Work (TODO)
+## 8. Development Environment & Project Phase
 
-- [ ] Attention weight visualisation (Chapter 4.3)
-- [ ] Statistical significance testing — paired t-tests across folds (Chapter 4.4)
+### Environment History
+
+| Phase | Machine | GPU | What was done |
+|-------|---------|-----|---------------|
+| Phase 1 (Nov 2025 – Mar 2026) | Windows desktop, RTX 3070 Ti 8GB | CUDA | All model development, training, 12 groups of 10-Fold CV experiments |
+| Phase 2 (Apr 2026 – present) | MacBook (macOS, no discrete GPU) | CPU only | Report writing, analysis scripts, LaTeX compilation |
+
+### Current Constraints (Phase 2)
+
+- **No GPU training available.** All 12 experiment results (3 tasks × 4 models) are final.
+  Results and model weights are in `Bonn/output/`. Do NOT suggest retraining.
+- **CPU inference is fine.** Loading saved `.pt` weights for attention visualization or
+  prediction runs on MacBook CPU without issues (~500K param model).
+- **Pure data analysis is fine.** Statistical tests, plotting, reading `results.json` — all CPU.
+- **LaTeX compilation works.** BasicTeX + XeLaTeX installed via Homebrew on this Mac.
+- If GPU training is truly needed, user can SSH to a Baidu Cloud AIHC dev machine,
+  but avoid suggesting this unless absolutely necessary.
+
+### Current Project Phase
+
+**Report writing phase.** The priority is completing the final LaTeX report by 27 Apr 2026.
+Ablation experiments (4 model variants comparison) are done. Hyperparameter sensitivity
+analysis was mentioned in mid-term "Work to do" but will go into Chapter 5.3 Further Work.
+
+## 9. Remaining Work (TODO)
+
+- [x] Attention weight visualisation — `Bonn/visualize_attention.py` (output: `output/attention_heatmap.png`)
+- [x] Statistical significance testing — `Bonn/stat_test.py` (output: `output/statistical_tests.json`)
+- [x] LaTeX template prepared — cover filled, chapters skeleton, reference.bib, figures copied
+- [ ] **Write final report content** (all chapters, 30–50 pages) — CURRENT PRIORITY
 - [ ] Comparison with published literature table (Chapter 4.5)
-- [ ] Complete final report LaTeX (all chapters)
 - [ ] Prepare viva slides (15 min presentation + 10 min Q&A)
 - [ ] Fill GenAI acknowledgement table (Cursor usage disclosure)
 
-## 9. LaTeX Compilation
+## 11. LaTeX Compilation
 
 ```bash
 cd BBC6521_Final_Report_LaTeX_Template_25_26
@@ -167,13 +194,17 @@ latexmk -xelatex main.tex
 
 Requires XeLaTeX (for xeCJK Chinese font support). BasicTeX + packages installed via Homebrew.
 
-## 10. Rules When Working on This Project
+## 12. Rules When Working on This Project
 
 1. **Always read `Bonn/docs/` first** to understand context before making changes.
 2. **Never revert to segment-level data splitting** — supervisor explicitly forbids it.
 3. **Use Vancouver referencing style** in the LaTeX report.
 4. **Report length**: 30–50 pages (up to Chapter 5, excluding appendices).
-5. **GenAI disclosure is mandatory** — document all AI tool usage honestly.
+5. **GenAI disclosure tone** — AI is positioned as a *coding assistant* for debugging and
+   formatting, NOT as the author. Emphasise the student's independent decision-making
+   (architecture choices, experimental design, data leakage fix, analysis). Never say
+   AI wrote the whole report or designed the model. The narrative is: student leads,
+   AI assists on mechanical tasks, student reviews and judges all output.
 6. **Protected branches**: never push directly to main/master.
 7. **Run tests** after code changes: `cd Bonn && python -m pytest tests/`.
 8. When writing LaTeX, only edit files in `contents/`, `appendices/`, `reference.bib`, and `cover.tex`. Do NOT edit `requirements.sty` or `environments.sty`.
