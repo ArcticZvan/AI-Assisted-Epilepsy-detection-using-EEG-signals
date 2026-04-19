@@ -185,7 +185,14 @@ analysis was mentioned in mid-term "Work to do" but will go into Chapter 5.3 Fur
 - [ ] Prepare viva slides (15 min presentation + 10 min Q&A)
 - [ ] Fill GenAI acknowledgement table (Cursor usage disclosure)
 
-## 11. LaTeX Compilation
+## 11. Verified References
+
+All 14 papers in `reference.bib` have been verified via WebSearch. Key facts (exact
+accuracy numbers, methods, datasets, limitations) are recorded in
+[REFERENCES.md](REFERENCES.md). Read it before citing any paper to avoid fabricating
+numbers or misrepresenting methods.
+
+## 12. LaTeX Compilation
 
 ```bash
 cd BBC6521_Final_Report_LaTeX_Template_25_26
@@ -194,7 +201,7 @@ latexmk -xelatex main.tex
 
 Requires XeLaTeX (for xeCJK Chinese font support). BasicTeX + packages installed via Homebrew.
 
-## 12. Rules When Working on This Project
+## 13. Rules When Working on This Project
 
 1. **Always read `Bonn/docs/` first** to understand context before making changes.
 2. **Never revert to segment-level data splitting** — supervisor explicitly forbids it.
