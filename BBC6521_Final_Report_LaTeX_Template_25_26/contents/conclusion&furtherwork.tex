@@ -27,6 +27,8 @@ I also want to be transparent about the role of AI tools. I used Cursor as a sup
 Several directions could extend this work:
 
 \begin{itemize}
+    \item \textbf{Subject-wise (patient-independent) evaluation on a dataset with explicit subject IDs.} A limitation of the current evaluation, as discussed in Section~4.6, is that the Bonn release does not include a per-file subject-ID mapping, so all cross-validation in this work is at the recording level rather than the subject level. After consulting the supervisor, the agreed plan is to address this as future work using CHB-MIT \cite{shoeb2010}, which is organised by patient (e.g., \texttt{chb01}--\texttt{chb24}) and natively supports a leave-subjects-out protocol (for example, 6 patients for training and 4 for testing). This would test whether the reported accuracy holds when the model is evaluated on previously unseen patients --- a setting closer to real clinical deployment.
+
     \item \textbf{Larger, multi-channel datasets.} The Bonn dataset has only 500 single-channel recordings and is relatively clean. Validating on noisier, multi-channel datasets like CHB-MIT \cite{shoeb2010} or the Temple University Hospital EEG Corpus \cite{obeid2016} would test whether the model generalises to real clinical conditions.
 
     \item \textbf{Hyperparameter sensitivity analysis.} The current hyperparameters (window size 1024, dropout 0.4, LSTM units 128/64) were chosen based on literature defaults and preliminary experiments. A systematic grid search or Bayesian optimisation over these parameters could improve performance or confirm robustness.
